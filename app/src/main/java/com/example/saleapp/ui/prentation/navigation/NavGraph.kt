@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.saleapp.model.Product
 import com.example.saleapp.ui.prentation.login.LoginScreen
+import com.example.saleapp.ui.prentation.payment.PaymentScreen
 import com.example.saleapp.ui.prentation.sale.SaleScreen
 import com.example.saleapp.ui.prentation.sale.SaleViewModel
 
@@ -37,9 +38,7 @@ fun AppNavigation(navController: NavHostController= rememberNavController()){
         }
         composable("payment") {
 
-            val product = navController.previousBackStackEntry
-                ?.savedStateHandle
-                ?.get<Product>("product")
+            PaymentScreen(navController)
 
 
         }
