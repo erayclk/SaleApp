@@ -26,9 +26,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 
 @Composable
-fun LoginScreen(viewModel: LoginViewModel= viewModel()){
+fun LoginScreen(viewModel: LoginViewModel= viewModel(),onLoginSuccess:()->Unit){
     val userId by viewModel.userId.collectAsState()
     val password by viewModel.password.collectAsState()
 
@@ -59,7 +60,7 @@ fun LoginScreen(viewModel: LoginViewModel= viewModel()){
         HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
         Button(onClick = {
             if(viewModel.validateLogin()){
-                //login success
+                onLoginSuccess()
             }
             else{
                 //login failed
@@ -79,8 +80,3 @@ fun LoginScreen(viewModel: LoginViewModel= viewModel()){
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview(){
-    LoginScreen()
-}
