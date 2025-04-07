@@ -23,6 +23,11 @@ public class PaymentServer {
 
                 System.out.println("Product information received:" + builder.toString());
 
+                String jsonString = builder.toString();
+                System.out.println("JSON string received: " + jsonString);
+
+
+
                 socket.close();
             }
         } catch (IOException e) {
