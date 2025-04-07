@@ -46,7 +46,6 @@ fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
     ) {
         Button(
             onClick = {
-
                 navController.previousBackStackEntry?.savedStateHandle?.set(
                     "responseCode",
                     99
@@ -58,7 +57,11 @@ fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
             Text("Cancel")
         }
         Button(
-            onClick = { TODO() },
+            onClick = { navController.previousBackStackEntry?.savedStateHandle?.set(
+                "responseCode",
+                1
+            )
+                navController.popBackStack() },
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("CashPayment")

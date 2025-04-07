@@ -46,7 +46,8 @@ fun SaleScreen(
 
         if (responseCode != null) {
             viewModel.errorMessage = when (responseCode) {
-                99 -> "Ödeme iptal edildi"
+                99 -> "Payment canceled"
+                1 -> "Payment was made in cash"
                 else -> ""
             }
             viewModel.resetAllFields()
