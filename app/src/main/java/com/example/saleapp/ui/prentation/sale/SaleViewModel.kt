@@ -24,7 +24,7 @@ class SaleViewModel :ViewModel(){
     fun validate(): Product?{
         val id = productId.toIntOrNull()
         val priceDouble = price.toDoubleOrNull()
-        val vat = productId.toIntOrNull()
+        val vat = vatRate.toIntOrNull()
 
         if(id==null || id !in 1..9999){
             errorMessage="Invalid product id"
