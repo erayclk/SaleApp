@@ -1,10 +1,12 @@
 package com.example.saleapp.ui.prentation.payment
 
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,9 +16,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.saleapp.model.Product
 import com.example.saleapp.service.RegistryService
+import com.example.saleapp.ui.prentation.sale.SaleViewModel
 
 @Composable
-fun PaymentScreen(navController: NavHostController) {
+fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
     val context = LocalContext.current
     val product = navController.previousBackStackEntry
         ?.savedStateHandle
@@ -35,32 +38,62 @@ fun PaymentScreen(navController: NavHostController) {
 
         }
     }
-    Column (modifier = Modifier.fillMaxSize()
-        .padding(15.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top =35.dp),
         verticalArrangement = Arrangement.Center,
-    ){
+    ) {
+        Button(
+            onClick = {
 
-        Column (modifier = Modifier.fillMaxSize()
-            .padding(15.dp),
-            verticalArrangement = Arrangement.Center
-            ,
-            ){
-            if (product != null) {
-                ProductInfo(product)
-            }
-            else{
-                Text(text = "No product selected")
-            }
+                navController.previousBackStackEntry?.savedStateHandle?.set(
+                    "responseCode",
+                    99
+                )
+                navController.popBackStack()
+            },
+
+        ) {
+            Text("Cancel")
         }
-    }
+        Button(
+            onClick = { TODO() },
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text("CashPayment")
+        }
+        Button(
+            onClick = { TODO() },
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text("CreditPayment")
+        }
+        Button(
+            onClick = { TODO() },
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text("“QRPayment")
+        }
 
+
+        if (product != null) {
+            ProductInfo(product)
+        } else {
+            Text(text = "No product selected")
+        }
+
+    }
 }
 
+
 @Composable
-private fun ProductInfo(product: Product){
-    Column (modifier = Modifier.fillMaxSize()
-        .padding(15.dp),
-    verticalArrangement = Arrangement.Center)
+private fun ProductInfo(product: Product) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize(),
+
+    )
     {
         Text(text = "Product ID: ${product.id}")
         Text(text = "Product Name: ${product.name}")

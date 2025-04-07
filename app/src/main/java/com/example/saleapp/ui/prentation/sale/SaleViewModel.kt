@@ -21,6 +21,13 @@ class SaleViewModel :ViewModel(){
         errorMessage=""
 
     }
+    fun resetAllFields(){
+        productId=""
+        productName=""
+        price=""
+        vatRate=""
+
+    }
     fun validate(): Product?{
         val id = productId.toIntOrNull()
         val priceDouble = price.toDoubleOrNull()
