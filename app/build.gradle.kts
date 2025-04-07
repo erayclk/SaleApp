@@ -9,8 +9,7 @@ plugins {
     id ("kotlin-parcelize")
 
 
-    kotlin("plugin.serialization") version "2.1.20"
-
+    kotlin("plugin.serialization") version "2.0.0"
 }
 
 android {
@@ -70,14 +69,13 @@ dependencies {
     val room_version = "2.6.1"
     implementation("androidx.room:room-runtime:$room_version")
 
-    // If this project uses any Kotlin source, use Kotlin Symbol Processing (KSP)
-    // See Add the KSP plugin to your project
+    // Using KSP for Room
     ksp("androidx.room:room-compiler:$room_version")
 
     implementation("com.google.dagger:hilt-android:2.51.1")
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     val nav_version = "2.8.9"
 
@@ -96,5 +94,4 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
-
 }
