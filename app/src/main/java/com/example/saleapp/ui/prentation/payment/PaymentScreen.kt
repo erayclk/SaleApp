@@ -2,7 +2,6 @@ package com.example.saleapp.ui.prentation.payment
 
 import android.content.Intent
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -22,14 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.saleapp.model.PaymentConstants
-
 import com.example.saleapp.model.Product
-
 import com.example.saleapp.service.RegistryService
 import com.example.saleapp.ui.prentation.payment.qrcode.generateQRCode
 import com.example.saleapp.ui.prentation.sale.SaleViewModel
-import sendRequest
-
 
 @Composable
 fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
@@ -46,8 +41,13 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
     ) { result ->
         val responseCode = result.data?.getIntExtra(PaymentConstants.RESPONSE_CODE, -1) ?: -1
 
+        // Database insert after response for Credit Payment
+        if (product != null && responseCode == 2) {
+            viewModel.insertTransaction(product, status = 1, paymentType = 2)
+        }
 
-
+        navController.previousBackStackEntry?.savedStateHandle?.set("responseCode", responseCode)
+        navController.popBackStack()
     }
 
     LaunchedEffect(Unit) {
@@ -75,9 +75,6 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
                     99
                 )
                 navController.popBackStack()
-                viewModel.clearFields()
-
-
             },
         ) {
             Text("Cancel")
@@ -88,7 +85,6 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
                     "responseCode",
                     1
                 )
-                viewModel.clearFields()
                 navController.popBackStack()
             },
             modifier = Modifier.padding(top = 16.dp)
@@ -98,7 +94,6 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
         Button(
             onClick = {
                 product?.let {
-
                     val intent = communicator.createCreditPaymentIntent(
                         context = context,
                         productId = it.id,
@@ -108,10 +103,11 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
                     )
 
                     paymentLauncher.launch(intent)
-
-
-
-
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        "responseCode",
+                        2
+                    )
+                    navController.popBackStack()
                 }
             },
             modifier = Modifier.padding(top = 16.dp)
@@ -123,25 +119,6 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
                 product?.let {
                     // Generate QR code
                     qrCodeBitmap.value = generateQRCode("product id=${it.id}, product name=${it.name}, price=${it.price}, vat rate=${it.vatRate}")
-                    product?.let {
-                        val intent = communicator.createQrPaymentIntent(
-                            context = context,
-                            productId = it.id,
-                            productName = it.name,
-                            payAmount = it.price,
-                            vatRate = it.vatRate
-                        )
-
-                        paymentLauncher.launch(intent)
-                        sendRequest { result ->
-                            // Bu blok UI thread’inde çalışır
-                            Log.d("OkHttp", "Sunucudan gelen yanıt: $result")
-                            // veya başka bir işlem
-                        }
-
-
-
-                    }
                 }
             },
             modifier = Modifier.padding(top = 16.dp)
