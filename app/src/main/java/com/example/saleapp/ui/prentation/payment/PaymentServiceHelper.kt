@@ -26,19 +26,4 @@ class PaymentServiceHelper {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
     }
-    fun createQRPaymentIntent(
-        context: Context,
-        productId: Int,
-        productName: String,
-        payAmount: Double,
-        vatRate: Int
-    ): Intent {
-        return Intent(PaymentConstants.PAY_ACTION).apply {
-            putExtra(PaymentConstants.PRODUCT_ID, productId)
-            putExtra(PaymentConstants.PRODUCT_NAME, productName)
-            putExtra(PaymentConstants.PAY_AMOUNT, payAmount)
-            putExtra(PaymentConstants.VAT_RATE, vatRate)
-            putExtra(PaymentConstants.PAY_TYPE, PaymentConstants.PAYMENT_QR)
-        }
-    }
 }

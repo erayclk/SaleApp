@@ -1,68 +1,85 @@
 package com.example.saleapp.service
 
+import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import android.util.Log
-import android.app.Service
-import org.json.JSONObject
-import java.io.BufferedWriter
-import java.io.OutputStreamWriter
-import java.net.Socket
+import com.example.saleapp.model.PaymentConstants
+import com.example.saleapp.room.TransactionDatabase
+import com.example.saleapp.model.Transaction
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class RegistryService : Service() {
 
+    private lateinit var db: TransactionDatabase
+    private val ioScope = CoroutineScope(Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
-        Log.d("RegistryService", "Service created")
+        db = TransactionDatabase.getDatabase(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent?.let {
-            val productId = it.getIntExtra("productId", -1)
-            val productName = it.getStringExtra("productName")
-            val price = it.getDoubleExtra("price", 0.0)
-            val vatRate = it.getIntExtra("vatRate", 0)
-
-            Log.d("RegistryService", "Received product: $productId - $productName - $price - VAT: $vatRate")
-
-            val json = JSONObject().apply {
-                put("productId", productId)
-                put("productName", productName)
-                put("price", price)
-                put("vatRate", vatRate)
-            }.toString()
-
-            Thread{
-                Log.d("RegistryService", "thread start")
-                sendDataToServer(json)
-            }.start()
-
-
-        }
+        intent?.let { processPayment(it) }
         return START_NOT_STICKY
-    }
+    }    private fun processPayment(intent: Intent) {
+        val productId = intent.getIntExtra(PaymentConstants.PRODUCT_ID, -1)
+        val productName = intent.getStringExtra(PaymentConstants.PRODUCT_NAME) ?: ""
+        val amount = intent.getDoubleExtra(PaymentConstants.PAY_AMOUNT, 0.0)
+        val vatRate = intent.getIntExtra(PaymentConstants.VAT_RATE, 0)
+        val paymentType = intent.getIntExtra(PaymentConstants.PAY_TYPE, 0)
 
-    private fun sendDataToServer(json: String) {
-        val serverIp = "192.168.1.38"
-        val port = 5000
+        android.util.Log.d("RegistryService", """
+            Saving transaction:
+            Product ID: $productId
+            Product Name: $productName
+            Amount: $amount
+            VAT Rate: $vatRate
+            Payment Type: $paymentType
+        """.trimIndent())
 
-        try {
-            val socket = Socket(serverIp, port)
-            val writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
-            writer.write(json)
-            writer.flush()
-            writer.close()
-            socket.close()
-            Log.d("RegistryService", "JSON sent to registry: $json")
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Log.e("RegistryService", "Error sending JSON to registry: ${e.message}")
+        ioScope.launch {
+            try {
+                // Create initial transaction record
+                val transaction = Transaction(
+                    productId = productId,
+                    productName = productName,
+                    amount = amount,
+                    vatRate = vatRate,
+                    status = PaymentConstants.STATUS_WAITING,
+                    paymentType = paymentType
+                )
+
+                // Insert and get the ID
+                val id = db.transactionDao().insert(transaction)
+                android.util.Log.d("RegistryService", "Transaction inserted with ID: $id")                // Update status to completed
+                db.transactionDao().updateStatusAndType(
+                    id = id.toInt(),
+                    status = PaymentConstants.STATUS_COMPLETED,
+                    paymentType = paymentType
+                )
+                
+                // Verify the transaction was saved correctly
+                val savedTransaction = db.transactionDao().getTransactionById(id.toInt())
+                android.util.Log.d("RegistryService", """
+                    Saved transaction verification:
+                    ID: ${savedTransaction?.id}
+                    Product ID: ${savedTransaction?.productId}
+                    Product Name: ${savedTransaction?.productName}
+                    Amount: ${savedTransaction?.amount}
+                    Status: ${savedTransaction?.status}
+                    Payment Type: ${savedTransaction?.paymentType}
+                    VAT Rate: ${savedTransaction?.vatRate}
+                """.trimIndent())
+
+            } catch (e: Exception) {
+                android.util.Log.e("RegistryService", "Error processing payment: ${e.message}")
+                e.printStackTrace()
+            }
         }
-
-
     }
 
-    override fun onBind(intent: Intent?): IBinder? =null
-
-
+    override fun onBind(intent: Intent?): IBinder? = null
 }
