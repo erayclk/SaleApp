@@ -94,4 +94,6 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+
+    implementation ("com.google.zxing:core:3.4.0")
 }

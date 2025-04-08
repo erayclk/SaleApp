@@ -1,9 +1,10 @@
 package com.example.saleapp.ui.prentation.payment
 
 import android.content.Intent
-import android.util.Log
+import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,41 +13,45 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.saleapp.model.PaymentConstants
 import com.example.saleapp.model.Product
 import com.example.saleapp.service.RegistryService
+import com.example.saleapp.ui.prentation.payment.qrcode.generateQRCode
 import com.example.saleapp.ui.prentation.sale.SaleViewModel
 
 @Composable
-fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
+fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
     val context = LocalContext.current
     val product = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<Product>("product")
 
-
     val communicator = remember { PaymentServiceHelper() }
+    val qrCodeBitmap = remember { mutableStateOf<Bitmap?>(null) }
 
     val paymentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val responseCode = result.data?.getIntExtra(PaymentConstants.RESPONSE_CODE, -1) ?: -1
-        /*
-        navController.previousBackStackEntry?.savedStateHandle?.set(
-            "responseCode",
-            responseCode
-        )
-        navController.popBackStack()*/
+
+        // Database insert after response for Credit Payment
+        if (product != null && responseCode == 2) {
+            viewModel.insertTransaction(product, status = 1, paymentType = 2)
+        }
+
+        navController.previousBackStackEntry?.savedStateHandle?.set("responseCode", responseCode)
+        navController.popBackStack()
     }
 
     LaunchedEffect(Unit) {
         if (product != null) {
-
             val intent = Intent(context, RegistryService::class.java)
             intent.putExtra("productId", product.id)
             intent.putExtra("productName", product.name)
@@ -54,14 +59,13 @@ fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
             intent.putExtra("vatRate", product.vatRate)
 
             context.startService(intent)
-
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top =35.dp),
+            .padding(top = 35.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         Button(
@@ -72,16 +76,17 @@ fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
                 )
                 navController.popBackStack()
             },
-
         ) {
             Text("Cancel")
         }
         Button(
-            onClick = { navController.previousBackStackEntry?.savedStateHandle?.set(
-                "responseCode",
-                1
-            )
-                navController.popBackStack() },
+            onClick = {
+                navController.previousBackStackEntry?.savedStateHandle?.set(
+                    "responseCode",
+                    1
+                )
+                navController.popBackStack()
+            },
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("CashPayment")
@@ -100,9 +105,9 @@ fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
                     paymentLauncher.launch(intent)
                     navController.previousBackStackEntry?.savedStateHandle?.set(
                         "responseCode",
-                        2)
+                        2
+                    )
                     navController.popBackStack()
-
                 }
             },
             modifier = Modifier.padding(top = 16.dp)
@@ -110,35 +115,40 @@ fun PaymentScreen(navController: NavHostController,viewModel: SaleViewModel) {
             Text("CreditPayment")
         }
         Button(
-            onClick = { TODO() },
+            onClick = {
+                product?.let {
+                    // Generate QR code
+                    qrCodeBitmap.value = generateQRCode("product id=${it.id}, product name=${it.name}, price=${it.price}, vat rate=${it.vatRate}")
+                }
+            },
             modifier = Modifier.padding(top = 16.dp)
         ) {
-            Text("“QRPayment")
+            Text("QR Code")
         }
 
+        // Display QR code if available
+        qrCodeBitmap.value?.let { bitmap ->
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "QR Code",
+                modifier = Modifier.padding(16.dp)
+            )
+        }
 
         if (product != null) {
             ProductInfo(product)
         } else {
             Text(text = "No product selected")
         }
-
     }
 }
 
-
 @Composable
 private fun ProductInfo(product: Product) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize(),
-
-    )
-    {
+    Column {
         Text(text = "Product ID: ${product.id}")
         Text(text = "Product Name: ${product.name}")
         Text(text = "Price: ${product.price}")
         Text(text = "VAT Rate: ${product.vatRate}")
-
     }
 }
