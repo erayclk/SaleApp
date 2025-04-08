@@ -1,17 +1,26 @@
 package com.example.saleapp.ui.prentation.sale
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.saleapp.model.Product
+import com.example.saleapp.model.Transaction
+import com.example.saleapp.room.TransactionDatabase
+import kotlinx.coroutines.launch
 
-class SaleViewModel :ViewModel(){
+class SaleViewModel (application: Application): AndroidViewModel(application){
     var productId by mutableStateOf("")
     var productName by mutableStateOf("")
     var price by mutableStateOf("")
     var errorMessage by mutableStateOf("")
     var vatRate by mutableStateOf("")
+
+    val transactionDao = TransactionDatabase.getDatabase(application).transactionDao()
+
 
     fun clearFields(){
         productId=""
@@ -51,8 +60,30 @@ class SaleViewModel :ViewModel(){
         }
 
 
+
         errorMessage=""
         return Product(id,productName,priceDouble,vat)
+
+
+
+    }
+    fun insertTransaction(product: Product, status: Int, paymentType: Int) {
+        val transaction = Transaction(
+            productId = product.id,
+            productName = product.name,
+            price = product.price,
+            vatRate = product.vatRate,
+            status = status,
+            paymentType = paymentType
+        )
+        viewModelScope.launch {
+            transactionDao.insert(transaction)
+        }
+    }
+    fun updateTransaction(id: Int, status: Int, paymentType: Int) {
+        viewModelScope.launch {
+            transactionDao.updateStatusAndType(id, status, paymentType)
+        }
     }
 
 }
