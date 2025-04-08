@@ -15,9 +15,7 @@ import com.example.saleapp.ui.prentation.sale.SaleScreen
 import com.example.saleapp.ui.prentation.sale.SaleViewModel
 
 @Composable
-fun AppNavigation(
-    navController: NavHostController // Parametre olarak al (artık varsayılan değer yok)
-) {
+fun AppNavigation(navController: NavHostController = rememberNavController()) {
     NavHost(
         navController = navController,
         startDestination = "login"
@@ -25,22 +23,32 @@ fun AppNavigation(
         composable("login") {
             LoginScreen(onLoginSuccess = { navController.navigate("sale") })
         }
+
         composable("sale") {
             val viewModel: SaleViewModel = viewModel()
             SaleScreen(
                 viewModel = viewModel,
-                navHostController = navController,
+                navController = navController,
                 onSubmit = { product ->
                     navController.currentBackStackEntry?.savedStateHandle?.set(
                         "product",
                         product
                     )
-                    navController.navigate("payment")
+                    navController.navigate("payment") {
+                        popUpTo("sale") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
             )
         }
+
         composable("payment") {
-            PaymentScreen(navController = navController, viewModel = viewModel() )
+            val viewModel: SaleViewModel = viewModel()
+            PaymentScreen(
+                navController = navController,
+                viewModel = viewModel
+            )
         }
     }
 }

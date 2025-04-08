@@ -6,14 +6,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import com.example.saleapp.model.PaymentConstants
 
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.net.Socket
+import java.net.SocketTimeoutException
+
 class PaymentActivity : ComponentActivity() {
-    private var socket: java.net.Socket? = null
-    
+    private var socket: Socket? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         processPayment()
     }
-    
+
     private fun processPayment() {
         // Get payment details from intent
         val productId = intent.getIntExtra(PaymentConstants.PRODUCT_ID, -1)
@@ -48,7 +53,8 @@ class PaymentActivity : ComponentActivity() {
 
     private fun connectToServer() {
         android.util.Log.d("PaymentActivity", "Attempting to connect to server...")
-        socket = java.net.Socket("192.168.1.38", 5000)
+        socket = Socket("192.168.1.38", 5000)
+        socket?.soTimeout = 15000 // 15 saniye timeout
         android.util.Log.d("PaymentActivity", "Connected to server")
     }
 
@@ -61,28 +67,75 @@ class PaymentActivity : ComponentActivity() {
     }
 
     private fun handleServerResponse() {
-        val reader = java.io.BufferedReader(java.io.InputStreamReader(socket?.getInputStream()))
-        var response: String? = null
-        
-        val timeoutThread = Thread {
-            //Thread.sleep(5000)
-            if (response == null) {
-                socket?.close()
-            }
-        }
-        timeoutThread.start()
+        try {
+            val inputStream = socket?.getInputStream() ?: throw IllegalStateException("Socket not connected")
 
-        response = reader.readLine()
-        android.util.Log.d("PaymentActivity", "Server response: $response")
-        timeoutThread.interrupt()
+            // Yanıt için buffer oluştur
+            val buffer = ByteArray(1024)
+            val bytesRead = inputStream.read(buffer)
 
-        runOnUiThread {
-            val resultIntent = Intent().apply {
-                putExtra(PaymentConstants.RESPONSE_CODE, if (response?.contains("00") == true) 0 else 1)
+            if (bytesRead > 0) {
+                val response = String(buffer, 0, bytesRead)
+                android.util.Log.d("PaymentActivity", "Raw server response: $response (Bytes: $bytesRead)")
+
+                runOnUiThread {
+                    val resultIntent = Intent().apply {
+                        putExtra(PaymentConstants.RESPONSE_CODE,
+                            when {
+                                response.contains("01") -> 0  // Credit success
+                                response.contains("02") -> 0  // QR success
+                                else -> 1  // Error
+                            }
+                        )
+                    }
+                    setResult(Activity.RESULT_OK, resultIntent)
+                    finish()
+                }
+            } else {
+                android.util.Log.e("PaymentActivity", "No data received from server")
+                handleError()
             }
-            setResult(Activity.RESULT_OK, resultIntent)
-            finish()
+        } catch (e: SocketTimeoutException) {
+            android.util.Log.e("PaymentActivity", "Socket timeout: ${e.message}")
+            handleError()
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentActivity", "Error reading response: ${e.message}")
+            handleError()
         }
+    }
+
+    private fun readFullResponse(inputStream: InputStream): String {
+        val buffer = ByteArray(1024)
+        val outputStream = ByteArrayOutputStream()
+        var bytesRead: Int
+
+        // Maximum 5 attempts to read data
+        var attempts = 0
+        var totalBytesRead = 0
+
+        try {
+            while (attempts < 5) {
+                bytesRead = inputStream.read(buffer)
+                if (bytesRead <= 0) break
+
+                outputStream.write(buffer, 0, bytesRead)
+                totalBytesRead += bytesRead
+
+                // If we got a complete response, break
+                if (buffer[bytesRead - 1] == '\n'.toByte()) break
+
+                attempts++
+                android.util.Log.d("PaymentActivity", "Read attempt $attempts, bytes read: $bytesRead")
+
+                // Small delay between read attempts
+                Thread.sleep(100)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PaymentActivity", "Error in readFullResponse: ${e.message}")
+        }
+
+        android.util.Log.d("PaymentActivity", "Total bytes read: $totalBytesRead")
+        return outputStream.toString("UTF-8").trim()
     }
 
     private fun handleError() {
@@ -103,7 +156,7 @@ class PaymentActivity : ComponentActivity() {
             android.util.Log.e("PaymentActivity", "Error closing socket: ${e.message}")
         }
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
         closeConnection()

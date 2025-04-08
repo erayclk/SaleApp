@@ -4,40 +4,68 @@ import java.net.*;
 public class PaymentServer {
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(5000);
-        System.out.println("PaymentServer started. Waiting for connections...");
+        System.out.println("PaymentServer started. Waiting for connections on port 5000...");
 
         while (true) {
             System.out.println("Waiting for new connection...");
-            try (Socket clientSocket = serverSocket.accept()) {
+            Socket clientSocket = null;
+
+            try {
+                clientSocket = serverSocket.accept();
                 System.out.println("Client connected from: " + clientSocket.getInetAddress());
 
-                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                // Sunucu tarafında timeout ayarı
+                clientSocket.setSoTimeout(20000); // 20 saniye
 
-                // Read JSON request from the client
-                String jsonRequest = in.readLine();
-                System.out.println("Raw data received: " + jsonRequest);
+                // Veri okuma için InputStream kullanımı
+                InputStream inputStream = clientSocket.getInputStream();
+                OutputStream outputStream = clientSocket.getOutputStream();
 
-                // Initialize the response
-                String jsonResponse;
+                // Veri okuma işlemi - Buffer kullanarak
+                byte[] buffer = new byte[1024];
+                int bytesRead = inputStream.read(buffer);
 
-                // Determine the response based on the payment type
-                if (jsonRequest.contains("\"PaymentType\":\"Credit\"")) {
-                    jsonResponse = "{\"ResponseCode\":\"00\"}"; // Credit payment approval
-                } else if (jsonRequest.contains("\"PaymentType\":\"QRCode\"")) {
-                    jsonResponse = "{\"ResponseCode\":\"00\"}"; // QR Code payment approval
+                if (bytesRead > 0) {
+                    // Alınan veriyi String'e çevir
+                    String jsonRequest = new String(buffer, 0, bytesRead);
+                    System.out.println("Raw data received: " + jsonRequest);
+
+                    // Yanıt oluştur
+                    String jsonResponse;
+
+                    if (jsonRequest.contains("\"PaymentType\":\"Credit\"")) {
+                        jsonResponse = "{\"ResponseCode\":\"01\"}\n";
+                    } else if (jsonRequest.contains("\"PaymentType\":\"QR\"")) {
+                        jsonResponse = "{\"ResponseCode\":\"02\"}\n";
+                    } else {
+                        jsonResponse = "{\"ResponseCode\":\"99\"}\n";
+                    }
+
+                    System.out.println("Sending response: " + jsonResponse.trim());
+
+                    // Yanıtı gönder
+                    outputStream.write(jsonResponse.getBytes());
+                    outputStream.flush();
+
+                    // Yanıtın gönderilmesini sağlamak için kısa bir gecikme
+                    Thread.sleep(200);
                 } else {
-                    jsonResponse = "{\"ResponseCode\":\"99\"}"; // Invalid request
+                    System.out.println("No data received from client");
                 }
 
-                // Send the response back to the client
-                out.println(jsonResponse);
-                out.flush();
-                System.out.println("Sent response: " + jsonResponse);
-                System.out.println("Received JSON: " + jsonRequest);
-
             } catch (Exception e) {
-                System.out.println("Error: " + e.getMessage());
+                System.out.println("Error in server: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                // Bağlantıyı kapat
+                if (clientSocket != null && !clientSocket.isClosed()) {
+                    try {
+                        clientSocket.close();
+                        System.out.println("Connection closed");
+                    } catch (IOException e) {
+                        System.out.println("Error closing socket: " + e.getMessage());
+                    }
+                }
             }
         }
     }

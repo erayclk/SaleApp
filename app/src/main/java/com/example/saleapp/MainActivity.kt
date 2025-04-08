@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.saleapp.ui.prentation.navigation.AppNavigation
 import com.example.saleapp.ui.theme.SaleAppTheme
+import okhttp3.OkHttpClient
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,7 +23,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             SaleAppTheme {
                 val navController = rememberNavController()
+
                 AppNavigation(navController=navController)
+
+
+
+
+
             }
         }
     }

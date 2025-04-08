@@ -1,6 +1,7 @@
 package com.example.saleapp.ui.prentation.sale
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,7 +11,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.saleapp.model.Product
 import com.example.saleapp.model.Transaction
 import com.example.saleapp.room.TransactionDatabase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.Socket
 
 class SaleViewModel (application: Application): AndroidViewModel(application){
     var productId by mutableStateOf("")
@@ -19,7 +25,16 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
     var errorMessage by mutableStateOf("")
     var vatRate by mutableStateOf("")
 
-    val transactionDao = TransactionDatabase.getDatabase(application).transactionDao()
+    // Payment Data için StateFlow ekleyin
+    private val _paymentData = MutableStateFlow("{}")
+    val paymentData: StateFlow<String> = _paymentData
+
+    // Payment Type ve Amount için ayrı state'ler
+    var paymentType by mutableStateOf("")
+    var paymentAmount by mutableStateOf("")
+
+   // val transactionDao = TransactionDatabase.getDatabase(application).transactionDao()
+
 
 
     fun clearFields(){
@@ -28,6 +43,7 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
         price=""
         vatRate=""
         errorMessage=""
+        Log.d("SaleViewModel", "Fields cleared")
 
     }
     fun resetAllFields(){
@@ -61,7 +77,7 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
 
 
 
-        errorMessage=""
+
         return Product(id,productName,priceDouble,vat)
 
 
@@ -76,14 +92,8 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
             status = status,
             paymentType = paymentType
         )
-        viewModelScope.launch {
-            transactionDao.insert(transaction)
-        }
+
     }
-    fun updateTransaction(id: Int, status: Int, paymentType: Int) {
-        viewModelScope.launch {
-            transactionDao.updateStatusAndType(id, status, paymentType)
-        }
-    }
+
 
 }
