@@ -13,7 +13,7 @@ object PaymentConstants {
     const val VAT_RATE = "VAT_RATE"
     const val PAY_TYPE = "PAY_TYPE"
     const val RESPONSE_CODE = "RESPONSE_CODE"
-
+    const val RESPONSE_DATA = "response_data"
     // Payment types
     const val PAYMENT_CASH = 1
     const val PAYMENT_CREDIT = 2

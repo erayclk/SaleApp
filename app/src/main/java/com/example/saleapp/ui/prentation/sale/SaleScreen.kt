@@ -24,7 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.saleapp.model.Product
 import org.json.JSONObject
-
+import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.StateFlow
 
 @SuppressLint("UnrememberedMutableState")
 @Composable
@@ -33,44 +34,38 @@ fun SaleScreen(
     navController: NavHostController,
     onSubmit: (Product) -> Unit
 ) {
-
-
-
     val paymentType = remember { mutableStateOf("") }
     val paymentAmount = remember { mutableStateOf("") }
 
-    val responseCode by navController
-        .previousBackStackEntry
-        ?.savedStateHandle
-        ?.getStateFlow<Int?>("responseCode", null)
-        ?.collectAsState() ?: mutableStateOf(null)
+    // Correct way to collect the StateFlow as state
+    val responseCode by remember {
+        navController.previousBackStackEntry
+            ?.savedStateHandle
+            ?.getStateFlow("responseCode", null)
+    }?.collectAsState() ?: remember { mutableStateOf(null) }
 
     LaunchedEffect(responseCode) {
         responseCode?.let { code ->
-            if (code == 99) { // Cancel kodu
+            // Update the ViewModel with the response code
+            viewModel.updatePaymentResponseCode(code)
+
+            if (code == 99) { // Cancel code
                 viewModel.clearFields()
-                // State'i sıfırla (tekrar tetiklenmemesi için)
+                // Reset state (to prevent re-triggering)
                 navController.previousBackStackEntry?.savedStateHandle?.remove<Int>("responseCode")
             }
         }
     }
-    LaunchedEffect(Unit) {
-        viewModel.paymentData.collect { data ->
-            try {
-                val jsonObject = JSONObject(data)
-                paymentType.value = jsonObject.optString("PaymentType", "Unknown")
-                paymentAmount.value = jsonObject.optString("Amount", "0.00")
-
-                // Gelen veriyi logla
-                Log.d(
-                    "PAYMENT_DATA",
-                    "Payment Type: ${paymentType.value}, Amount: ${paymentAmount.value}"
-                )
-            } catch (e: Exception) {
-                Log.e("PAYMENT_DATA", "Error parsing payment data", e)
-            }
+/*
+    val responseCodeValue = viewModel.paymentResponseCode.collectAsState().value
+    Text("Response Code: ${
+        when (responseCodeValue) {
+            0 -> "Success (0)"
+            1 -> "Error (1)"
+            99 -> "Cancelled (99)"
+            else -> "Unknown ($responseCodeValue)"
         }
-    }
+    }")*/
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -111,7 +106,6 @@ fun SaleScreen(
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-
             Button(onClick = { viewModel.clearFields() }) {
                 Text("Clear")
             }
@@ -126,9 +120,7 @@ fun SaleScreen(
             }
         }
         Text(viewModel.errorMessage)
-
     }
-
 }
 
 /*

@@ -70,7 +70,7 @@ class PaymentActivity : ComponentActivity() {
         try {
             val inputStream = socket?.getInputStream() ?: throw IllegalStateException("Socket not connected")
 
-            // Yanıt için buffer oluştur
+            // Create buffer for response
             val buffer = ByteArray(1024)
             val bytesRead = inputStream.read(buffer)
 
@@ -78,15 +78,18 @@ class PaymentActivity : ComponentActivity() {
                 val response = String(buffer, 0, bytesRead)
                 android.util.Log.d("PaymentActivity", "Raw server response: $response (Bytes: $bytesRead)")
 
+                // Add debug logging here
+                val responseCode = when {
+                    response.contains("01") -> 0  // Credit success
+                    response.contains("02") -> 0  // QR success
+                    else -> 1  // Error
+                }
+                android.util.Log.d("PaymentActivity", "Determined response code: $responseCode")
+
                 runOnUiThread {
                     val resultIntent = Intent().apply {
-                        putExtra(PaymentConstants.RESPONSE_CODE,
-                            when {
-                                response.contains("01") -> 0  // Credit success
-                                response.contains("02") -> 0  // QR success
-                                else -> 1  // Error
-                            }
-                        )
+                        putExtra(PaymentConstants.RESPONSE_CODE, responseCode)
+                        putExtra(PaymentConstants.RESPONSE_DATA, response)
                     }
                     setResult(Activity.RESULT_OK, resultIntent)
                     finish()
@@ -95,9 +98,6 @@ class PaymentActivity : ComponentActivity() {
                 android.util.Log.e("PaymentActivity", "No data received from server")
                 handleError()
             }
-        } catch (e: SocketTimeoutException) {
-            android.util.Log.e("PaymentActivity", "Socket timeout: ${e.message}")
-            handleError()
         } catch (e: Exception) {
             android.util.Log.e("PaymentActivity", "Error reading response: ${e.message}")
             handleError()

@@ -26,9 +26,40 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
     var vatRate by mutableStateOf("")
 
     // Payment Data için StateFlow ekleyin
-    private val _paymentData = MutableStateFlow("{}")
+
+
+    private val _paymentResponseType = MutableStateFlow("")
+    val paymentResponseType: StateFlow<String> = _paymentResponseType
+
+    private val _paymentResponseCode = MutableStateFlow(-1)
+
+
+    private val _paymentData = MutableStateFlow("")
     val paymentData: StateFlow<String> = _paymentData
 
+    var paymentResponseCode by mutableStateOf(-1)
+
+
+    var paymentResponseRaw by mutableStateOf("")
+
+
+    // Update methods
+    fun updatePaymentResponseCode(code: Int) {
+        Log.d("SaleViewModel", "Updating response code to: $code")
+        paymentResponseCode = code
+    }
+
+    fun updatePaymentResponse(responseType: String, amount: Double) {
+        Log.d("SaleViewModel", "Updating payment type to: $responseType, amount: $amount")
+        paymentType = responseType
+        paymentAmount = amount.toString()
+        _paymentData.value = """{"PaymentType":"$responseType","Amount":"$amount"}"""
+    }
+
+    fun updateRawResponse(response: String) {
+        Log.d("SaleViewModel", "Updating raw response to: $response")
+        paymentResponseRaw = response
+    }
     // Payment Type ve Amount için ayrı state'ler
     var paymentType by mutableStateOf("")
     var paymentAmount by mutableStateOf("")
