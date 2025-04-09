@@ -1,21 +1,48 @@
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
+
 public class PaymentServer {
+    private static JFrame frame;
+    private static JLabel statusLabel;
+    private static JLabel imageLabel;
+    private static JTextArea logArea;
+    private static String currentAmount = "";
+    
     public static void main(String[] args) throws IOException {
+        // Set up the GUI
+        SwingUtilities.invokeLater(() -> createAndShowGUI());
+        
         ServerSocket serverSocket = new ServerSocket(5000);
-        System.out.println("PaymentServer started. Waiting for connections on port 5000...");
+        log("PaymentServer started. Waiting for connections on port 5000...");
 
         while (true) {
-            System.out.println("Waiting for new connection...");
+            log("Waiting for new connection...");
             Socket clientSocket = null;
 
             try {
                 clientSocket = serverSocket.accept();
-                System.out.println("Client connected from: " + clientSocket.getInetAddress());
+                log("Client connected from: " + clientSocket.getInetAddress());
 
                 // Sunucu tarafında timeout ayarı
                 clientSocket.setSoTimeout(20000); // 20 saniye
@@ -31,57 +58,70 @@ public class PaymentServer {
                 if (bytesRead > 0) {
                     // Alınan veriyi String'e çevir
                     String jsonRequest = new String(buffer, 0, bytesRead);
-                    System.out.println("Raw data received: " + jsonRequest);
+                    log("Raw data received: " + jsonRequest);
                     
-                    System.out.println("Received payment details:");
+                    log("Received payment details:");
                     if (jsonRequest.contains("\"ProductId\"")) {
-                        System.out.println("  - Product ID: " + extractJsonValue(jsonRequest, "ProductId"));
+                        log("  - Product ID: " + extractJsonValue(jsonRequest, "ProductId"));
                     }
                     if (jsonRequest.contains("\"ProductName\"")) {
-                        System.out.println("  - Product Name: " + extractJsonValue(jsonRequest, "ProductName"));
+                        log("  - Product Name: " + extractJsonValue(jsonRequest, "ProductName"));
                     }
                     if (jsonRequest.contains("\"Amount\"")) {
-                        System.out.println("  - Amount: " + extractJsonValue(jsonRequest, "Amount"));
+                        log("  - Amount: " + extractJsonValue(jsonRequest, "Amount"));
                     }
                     if (jsonRequest.contains("\"VatRate\"")) {
-                        System.out.println("  - VAT Rate: " + extractJsonValue(jsonRequest, "VatRate"));
+                        log("  - VAT Rate: " + extractJsonValue(jsonRequest, "VatRate"));
                     }
 
                     // Yanıt oluştur
                     String responseCode;
                     
-                    System.out.println("Analyzing payment type in request: " + jsonRequest);
+                    log("Analyzing payment type in request: " + jsonRequest);
                     
                     // Extract the payment type directly using our method
                     String paymentType = extractJsonValue(jsonRequest, "PaymentType");
-                    System.out.println("Extracted PaymentType: " + paymentType);
+                    log("Extracted PaymentType: " + paymentType);
+                    
+                    String amount = extractJsonValue(jsonRequest, "Amount");
                     
                     if (paymentType.equals("Credit")) {
-                        System.out.println("Detected Credit payment - Responding with code 02");
+                        log("Detected Credit payment - Responding with code 02");
+                        updateStatus("Processing Credit Card Payment: " + amount + " TL");
+                        
+                        // Show credit card image with amount
+                        currentAmount = amount;
+                        showCardImage();
+                        
                         responseCode = "02";
                     } else if (paymentType.equals("QR")) {
-                        System.out.println("Detected QR payment");
+                        log("Detected QR payment");
+                        updateStatus("Processing QR Payment: " + amount + " TL");
+                        
                         // Get the ProductId to determine which response to send
                         String productId = extractJsonValue(jsonRequest, "ProductId");
                         if (productId.equals("1")) {
-                            System.out.println("QR payment with ProductId 1 - Responding with code 01");
+                            log("QR payment with ProductId 1 - Responding with code 01");
                             responseCode = "01";
                         } else {
-                            System.out.println("QR payment with other ProductId - Responding with code 03");
+                            log("QR payment with other ProductId - Responding with code 03");
                             responseCode = "03";
                         }
                     } else if (paymentType.equals("Cash")) {
-                        System.out.println("Detected Cash payment - Responding with code 01");
+                        log("Detected Cash payment - Responding with code 01");
+                        updateStatus("Processing Cash Payment: " + amount + " TL");
+                        
                         responseCode = "01";
                     } else {
-                        System.out.println("Unknown payment type: '" + paymentType + "' - Responding with code 99");
+                        log("Unknown payment type: '" + paymentType + "' - Responding with code 99");
+                        updateStatus("Unknown Payment Type: " + paymentType);
+                        
                         responseCode = "99";
                     }
 
                     // Extract all data from the request
                     String productId = extractJsonValue(jsonRequest, "ProductId");
                     String productName = extractJsonValue(jsonRequest, "ProductName");
-                    String amount = extractJsonValue(jsonRequest, "Amount");
                     String vatRate = extractJsonValue(jsonRequest, "VatRate");
 
                     // Create a full response with all the data
@@ -90,7 +130,15 @@ public class PaymentServer {
                         responseCode, productId, productName, paymentType, amount, vatRate
                     );
 
-                    System.out.println("Sending response: " + jsonResponse.trim());
+                    log("Sending response: " + jsonResponse.trim());
+                    
+                    if (paymentType.equals("Credit")) {
+                        updateStatus("Credit Card Payment Successful!");
+                    } else if (paymentType.equals("QR")) {
+                        updateStatus("QR Payment Successful!");
+                    } else if (paymentType.equals("Cash")) {
+                        updateStatus("Cash Payment Successful!");
+                    }
 
                     // Yanıtı gönder
                     outputStream.write(jsonResponse.getBytes());
@@ -99,20 +147,20 @@ public class PaymentServer {
                     // Yanıtın gönderilmesini sağlamak için kısa bir gecikme
                     Thread.sleep(200);
                 } else {
-                    System.out.println("No data received from client");
+                    log("No data received from client");
                 }
 
             } catch (Exception e) {
-                System.out.println("Error in server: " + e.getMessage());
+                log("Error in server: " + e.getMessage());
                 e.printStackTrace();
             } finally {
                 // Bağlantıyı kapat
                 if (clientSocket != null && !clientSocket.isClosed()) {
                     try {
                         clientSocket.close();
-                        System.out.println("Connection closed");
+                        log("Connection closed");
                     } catch (IOException e) {
-                        System.out.println("Error closing socket: " + e.getMessage());
+                        log("Error closing socket: " + e.getMessage());
                     }
                 }
             }
@@ -135,5 +183,138 @@ public class PaymentServer {
             return value;
         }
         return "Not found";
+    }
+    
+    private static void createAndShowGUI() {
+        // Create and set up the window
+        frame = new JFrame("Payment Server");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(600, 500);
+        frame.setLayout(new BorderLayout());
+        
+        // Status panel at top
+        JPanel statusPanel = new JPanel();
+        statusPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        statusLabel = new JLabel("Starting server...");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        statusPanel.add(statusLabel);
+        frame.add(statusPanel, BorderLayout.NORTH);
+        
+        // Center panel for card image
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BorderLayout());
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        imageLabel = new JLabel("Waiting for payment...");
+        imageLabel.setHorizontalAlignment(JLabel.CENTER);
+        centerPanel.add(imageLabel, BorderLayout.CENTER);
+        frame.add(centerPanel, BorderLayout.CENTER);
+        
+        // Log panel at bottom
+        JPanel logPanel = new JPanel(new BorderLayout());
+        logPanel.setBorder(BorderFactory.createTitledBorder("Server Log"));
+        logArea = new JTextArea(10, 50);
+        logArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(logArea);
+        logPanel.add(scrollPane);
+        frame.add(logPanel, BorderLayout.SOUTH);
+        
+        // Display the window
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+        
+        // Add shutdown hook to close resources
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                System.out.println("Server shutting down...");
+                System.exit(0);
+            }
+        });
+    }
+    
+    private static void updateStatus(String status) {
+        SwingUtilities.invokeLater(() -> {
+            if (statusLabel != null) {
+                statusLabel.setText(status);
+            }
+        });
+    }
+    
+    private static void log(String message) {
+        System.out.println(message);
+        
+        SwingUtilities.invokeLater(() -> {
+            if (logArea != null) {
+                logArea.append(message + "\n");
+                logArea.setCaretPosition(logArea.getDocument().getLength());
+            }
+        });
+    }
+    
+    private static void showCardImage() {
+        SwingUtilities.invokeLater(() -> {
+            if (imageLabel != null) {
+                try {
+                    // Use the specific file path
+                    File cardFile = new File("C:/projeler/SaleApp/JavaServer/JavaServer/out/production/JavaServer/res/drawable/card.png");
+                    
+                    if (!cardFile.exists()) {
+                        log("Card image not found at: " + cardFile.getAbsolutePath());
+                        
+                        // Make sure the directory exists
+                        File directory = new File("C:/projeler/SaleApp/JavaServer/JavaServer/out/production/JavaServer/res/drawable");
+                        if (!directory.exists()) {
+                            directory.mkdirs();
+                            log("Created directory: " + directory.getAbsolutePath());
+                        }
+                        
+                        imageLabel.setText("Card image not found");
+                        return;
+                    }
+                    
+                    log("Using card image from: " + cardFile.getAbsolutePath());
+                    
+                    // Load the card.png image
+                    BufferedImage cardImage = ImageIO.read(cardFile);
+                    
+                    // Create a copy to draw on
+                    BufferedImage copyImage = new BufferedImage(
+                            cardImage.getWidth(), 
+                            cardImage.getHeight(), 
+                            BufferedImage.TYPE_INT_ARGB);
+                    
+                    Graphics2D g2d = copyImage.createGraphics();
+                    
+                    // Draw the original image
+                    g2d.drawImage(cardImage, 0, 0, null);
+                    
+                    // Draw the amount on top
+                    g2d.setColor(Color.BLACK);
+                    g2d.setFont(new Font("Arial", Font.BOLD, 24));
+                    
+                    // Draw amount in the right-middle position
+                    String amountText = currentAmount + " TL";
+                    int textWidth = g2d.getFontMetrics().stringWidth(amountText);
+                    
+                    // Position the text in the right-middle area of the card
+                    int xPosition = cardImage.getWidth() - textWidth - 150; // 150 pixels from the right edge (moved more to the left)
+                    int yPosition = cardImage.getHeight() / 2; // vertically centered
+                    
+                    g2d.drawString(amountText, xPosition, yPosition);
+                    
+                    g2d.dispose();
+                    
+                    // Set the image with amount
+                    imageLabel.setIcon(new ImageIcon(copyImage));
+                    imageLabel.setText("");
+                    frame.repaint();
+                    
+                } catch (IOException e) {
+                    log("Error loading card image: " + e.getMessage());
+                    e.printStackTrace();
+                    imageLabel.setText("Error loading card image");
+                }
+            }
+        });
     }
 }

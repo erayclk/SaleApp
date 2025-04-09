@@ -125,6 +125,17 @@ class PaymentActivity : ComponentActivity() {
                     
                     android.util.Log.d("PaymentActivity", "Determined response code: $responseCode")
 
+                    // Ödeme türünü algılama kısmında
+                    if (responseCodeStr.equals("Credit")) {
+                        val amount = jsonResponse.optString("Amount", "0.00")
+                        android.util.Log.d("PaymentActivity", "Detected Credit payment - Amount: $amount")
+                        
+                        // UI thread'de görsel güncelleme
+                        runOnUiThread {
+                            handleCreditPayment(amount)
+                        }
+                    }
+
                     runOnUiThread {
                         // Intent'i SaleApp'e göndermek için ayarla
                         val resultIntent = Intent().apply {
@@ -209,5 +220,10 @@ class PaymentActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         closeConnection()
+    }
+
+    private fun handleCreditPayment(amount: String) {
+        android.util.Log.d("PaymentActivity", "Handling credit payment with amount: $amount")
+        // Kredi kartı işleme kodu buraya eklenebilir
     }
 }
