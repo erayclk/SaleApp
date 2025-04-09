@@ -27,9 +27,14 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.SaleApp">            <intent-filter>
+            android:theme="@style/Theme.SaleApp">
+            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.example.registry.PAY_ACTION" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         <service
@@ -48,6 +53,15 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        
+        <!-- Broadcast receiver tanımı -->
+        <receiver
+            android:name=".ui.prentation.payment.QrPaymentReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.saleapp.PAYMENT_RESPONSE" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

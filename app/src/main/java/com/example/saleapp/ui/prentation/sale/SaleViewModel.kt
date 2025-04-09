@@ -121,19 +121,16 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
     fun updatePaymentResponseCode(code: Int) {
         Log.d("SaleViewModel", "Updating response code to: $code")
         
-        // Eski ve yeni değerleri karşılaştıralım
-        val oldValue = _paymentResponseCode.value
-        
-        // StateFlow'un değerini güncelleyin
-        _paymentResponseCode.value = code
-        
-        // Değişiklik sonrası onaylamak için debug log
-        Log.d("SaleViewModel", "Response code updated: old=$oldValue, new=$code, current=${_paymentResponseCode.value}")
-        
-        // Hemen bu değişikliği test etmek için
-        val currentValue = _paymentResponseCode.value
-        if (currentValue != code) {
-            Log.e("SaleViewModel", "ERROR: Value didn't update correctly! expected=$code, actual=$currentValue")
+        // StateFlow güncellemesini viewModelScope içinde yaparak ana thread'de gerçekleşmesini sağla
+        viewModelScope.launch {
+            // Eski ve yeni değerleri karşılaştıralım
+            val oldValue = _paymentResponseCode.value
+            
+            // StateFlow'un değerini güncelleyin
+            _paymentResponseCode.value = code
+            
+            // Değişiklik sonrası onaylamak için debug log
+            Log.d("SaleViewModel", "Response code updated: old=$oldValue, new=$code, current=${_paymentResponseCode.value}")
         }
     }
 

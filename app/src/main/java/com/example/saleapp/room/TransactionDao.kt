@@ -9,7 +9,7 @@ import com.example.saleapp.model.Transaction
 @Dao
 interface TransactionDao {
     @Insert
-    suspend fun insert(transaction: Transaction)
+    suspend fun insert(transaction: Transaction): Long
 
     @Query("UPDATE transactions SET status = :status, paymentType = :paymentType WHERE id = :id")
     suspend fun updateStatusAndType(id: Int, status: Int, paymentType: Int)

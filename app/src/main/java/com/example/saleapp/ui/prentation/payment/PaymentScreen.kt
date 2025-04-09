@@ -41,7 +41,6 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
         ?.get<Product>("product")
 
     val communicator = remember { PaymentServiceHelper() }
-    val qrCodeBitmap = remember { mutableStateOf<Bitmap?>(null) }
 
     val paymentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -150,46 +149,33 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
 
         Button(
             onClick = {
-                // QR ödeme için response code 3
-                viewModel.updatePaymentResponseCode(3)
-                Log.d("PaymentScreen", "QR payment selected, setting responseCode=3")
-                
+                // QR ödeme için RegistryService'e yönlendir
                 product?.let {
-                    // QR kodu göster
-                    qrCodeBitmap.value = generateQRCode("product id=${it.id}, product name=${it.name}, price=${it.price}, vat rate=${it.vatRate}")
-                    
-                    // Gerçek bir QR işlemi yapmak isterseniz bu kısmı aktif edebilirsiniz
-
-                    val intent = communicator.createQrPaymentIntent(
-                        context = context,
-                        productId = it.id,
-                        productName = it.name,
-                        payAmount = it.price,
-                        vatRate = it.vatRate
-                    )
-                    paymentLauncher.launch(intent)
-                    sendRequest { result ->
-                        Log.d("OkHttp", " qr Sunucudan gelen yanıt: $result")
+                    // QR ödeme tipini belirle
+                    val intent = Intent(context, RegistryService::class.java).apply {
+                        putExtra(PaymentConstants.PRODUCT_ID, it.id)
+                        putExtra(PaymentConstants.PRODUCT_NAME, it.name)
+                        putExtra(PaymentConstants.PAY_AMOUNT, it.price)
+                        putExtra(PaymentConstants.VAT_RATE, it.vatRate)
+                        putExtra(PaymentConstants.PAY_TYPE, PaymentConstants.PAYMENT_QR) // QR ödeme tipi
                     }
-
+                    
+                    // RegistryService'i başlat
+                    context.startService(intent)
+                    
+                    // Ürün bilgisini qr_code ekranına iletmek için savedStateHandle'a kaydet
+                    navController.currentBackStackEntry?.savedStateHandle?.set("product", it)
+                    
+                    // QR kodu oluşturulması ve görüntülenmesi için QrCodeScreen'e geçiş yap
+                    // QR içeriği RegistryService tarafından broadcast olarak geri gönderilecek
+                    navController.navigate("qr_code")
+                    
+                    Log.d("PaymentScreen", "Navigating to QR code screen with product: ${it.id}-${it.name}")
                 }
-                
-                // QR kodu gösterdikten sonra 3 saniye sonra geri dönmeyi devre dışı bıraktım
-                // Böylece kullanıcı QR kodu görüntüleyebilir
-                // navController.popBackStack()
             },
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("QR Code")
-        }
-
-        // Display QR code if available
-        qrCodeBitmap.value?.let { bitmap ->
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "QR Code",
-                modifier = Modifier.padding(16.dp)
-            )
         }
 
         if (product != null) {

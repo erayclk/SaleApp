@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.saleapp.model.Product
 import com.example.saleapp.ui.prentation.login.LoginScreen
 import com.example.saleapp.ui.prentation.payment.PaymentScreen
+import com.example.saleapp.ui.prentation.payment.QrCodeScreen
 import com.example.saleapp.ui.prentation.sale.SaleScreen
 import com.example.saleapp.ui.prentation.sale.SaleViewModel
 
@@ -53,6 +54,25 @@ fun AppNavigation(
             PaymentScreen(
                 navController = navController,
                 viewModel = viewModel
+            )
+        }
+        
+        composable("qr_code") {
+            // QR Code ekranını buraya ekledik
+            // Ürün bilgisini doğrudan önceki ekrandan alıyoruz
+            val product = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<Product>("product")
+            
+            Log.d("NavGraph", "QrCodeScreen: product=${product?.id}-${product?.name ?: "null"}")
+            
+            // Ürün bilgisi ile QrCodeScreen'i başlat
+            QrCodeScreen(
+                navController = navController,
+                viewModel = viewModel,
+                product = product,
+                qrCodeBitmap = null,
+                serverResponse = ""
             )
         }
     }

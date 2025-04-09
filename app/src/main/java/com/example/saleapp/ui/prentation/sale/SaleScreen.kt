@@ -102,6 +102,17 @@ fun SaleScreen(
             viewModel.updatePaymentResponseCode(-1) 
         }
     }
+
+    // QR ödemesi tamamlandığında ekranı yenilemek için ek bir LaunchedEffect
+    LaunchedEffect(Unit) {
+        viewModel.paymentResponseCode.collect { newCode ->
+            if (newCode == 3) {
+                Log.d("SaleScreen", "QR payment detected (code=3), ensuring screen refresh")
+                // Burada doğrudan bir şey yapmaya gerek yok, collect işlemi yeterli
+                // Bu collect, QR ödemesi tamamlandığında ekranın yenilenmesini sağlar
+            }
+        }
+    }
     
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -114,7 +125,7 @@ fun SaleScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Payment Screen ",
+                "Satış Ekranı",
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.headlineMedium
             )
