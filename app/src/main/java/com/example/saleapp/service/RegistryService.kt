@@ -40,18 +40,11 @@ class RegistryService : Service() {
         val vatRate = intent.getIntExtra(PaymentConstants.VAT_RATE, 0)
         val paymentType = intent.getIntExtra(PaymentConstants.PAY_TYPE, 0)
 
-        android.util.Log.d("RegistryService", """
-            Saving transaction:
-            Product ID: $productId
-            Product Name: $productName
-            Amount: $amount
-            VAT Rate: $vatRate
-            Payment Type: $paymentType
-        """.trimIndent())
+
 
         ioScope.launch {
             try {
-                // Create initial transaction record
+                // İlk işlem kaydını oluştur
                 val transaction = Transaction(
                     productId = productId,
                     productName = productName,
@@ -91,42 +84,26 @@ class RegistryService : Service() {
                         addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
                     }
                     
-                    // Detaylı log ekleyelim
-                    Log.d("RegistryService", "Broadcasting QR response with action: ${PaymentConstants.PAYMENT_RESPONSE_ACTION}")
-                    Log.d("RegistryService", "QR Content: $qrContent")
-                    Log.d("RegistryService", "Server Response: $serverResponse")
-                    
-                    // Broadcast gönder
-                    sendBroadcast(responseIntent)
-                    Log.d("RegistryService", "QR payment broadcast sent successfully")
+
                 }
                 
-                // Insert and get the ID
+                // Ekle ve Id al
                 val id = db.transactionDao().insert(transaction)
                 val idInt = id.toInt()
-                android.util.Log.d("RegistryService", "Transaction inserted with ID: $id")
+
                 
-                // Update status to completed
+                // Durumu tamamlandı olarak güncelle
                 db.transactionDao().updateStatusAndType(
                     id = idInt,
                     status = PaymentConstants.STATUS_COMPLETED,
                     paymentType = paymentType
                 )
                 
-                // Verify the transaction was saved correctly
+                // İşlemin doğru şekilde kaydedildiğini doğrulama
                 val savedTransaction = db.transactionDao().getTransactionById(idInt)
-                android.util.Log.d("RegistryService", """
-                    Saved transaction verification:
-                    ID: ${savedTransaction?.id}
-                    Product ID: ${savedTransaction?.productId}
-                    Product Name: ${savedTransaction?.productName}
-                    Price: ${savedTransaction?.price}
-                    Status: ${savedTransaction?.status}
-                    Payment Type: ${savedTransaction?.paymentType}
-                    VAT Rate: ${savedTransaction?.vatRate}
-                """.trimIndent())
+
             } catch (e: Exception) {
-                android.util.Log.e("RegistryService", "Error processing payment: ${e.message}")
+
                 e.printStackTrace()
             }
         }

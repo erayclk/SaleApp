@@ -57,7 +57,7 @@ fun QrCodeScreen(
     
     // Başlangıçta bir başlangıç QR kodu oluştur (ürün bilgileri varsa)
     LaunchedEffect(product) {
-        Log.d("QrCodeScreen", "LaunchedEffect - Creating initial QR code")
+
         if (product != null) {
             Log.d("QrCodeScreen", "Product data available: ID=${product.id}, Name=${product.name}, Price=${product.price}")
             try {

@@ -21,7 +21,7 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     sharedViewModel: SaleViewModel? = null
 ) {
-    // Eğer sharedViewModel null ise, yerel ViewModel oluştur
+    // sharedViewModel null ise, yerel ViewModel oluştur
     val viewModel = sharedViewModel ?: viewModel<SaleViewModel>()
     
     NavHost(

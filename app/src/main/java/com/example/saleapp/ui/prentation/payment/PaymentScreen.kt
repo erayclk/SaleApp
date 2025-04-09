@@ -35,7 +35,7 @@ import com.example.saleapp.model.Product
 import com.example.saleapp.service.RegistryService
 import com.example.saleapp.ui.prentation.payment.qrcode.generateQRCode
 import com.example.saleapp.ui.prentation.sale.SaleViewModel
-import sendRequest
+
 import org.json.JSONObject
 @Composable
 fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
@@ -100,9 +100,7 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
                         context, it.id, it.name, it.price, it.vatRate
                     )
                     paymentLauncher.launch(intent)
-                    sendRequest { result ->
-                        Log.d("OkHttp", "Sunucudan gelen yanıt: $result")
-                    }
+
                 }
             }
 

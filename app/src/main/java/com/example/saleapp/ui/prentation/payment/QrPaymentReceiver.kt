@@ -6,10 +6,6 @@ import android.content.Intent
 import android.util.Log
 import com.example.saleapp.model.PaymentConstants
 
-/**
- * QR ödeme işlemi için yanıtları alan BroadcastReceiver.
- * Manifest dosyasında tanımlıdır.
- */
 class QrPaymentReceiver : BroadcastReceiver() {
     
     override fun onReceive(context: Context, intent: Intent) {
@@ -20,9 +16,7 @@ class QrPaymentReceiver : BroadcastReceiver() {
             val responseData = intent.getStringExtra(PaymentConstants.RESPONSE_DATA)
             val qrContent = intent.getStringExtra("QR_CONTENT")
             
-            Log.d(TAG, "Response code: $responseCode")
-            Log.d(TAG, "Response data: $responseData")
-            Log.d(TAG, "QR content: $qrContent")
+
             
             // Global bir değişkene kaydedelim
             lastQrResponse = responseData ?: ""
@@ -39,7 +33,7 @@ class QrPaymentReceiver : BroadcastReceiver() {
             androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(context)
                 .sendBroadcast(localIntent)
             
-            Log.d(TAG, "Local broadcast sent with action: $ACTION_QR_PAYMENT_PROCESSED")
+
         }
     }
     
