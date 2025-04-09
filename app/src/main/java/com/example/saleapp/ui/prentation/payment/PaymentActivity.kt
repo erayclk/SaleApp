@@ -39,7 +39,7 @@ class PaymentActivity : ComponentActivity() {
         Thread {
             try {
                 connectToServer()
-                sendPaymentData(payType, payAmount)
+                sendPaymentData(productId, productName, payType, payAmount, vatRate)
                 handleServerResponse()
             } catch (e: Exception) {
                 android.util.Log.e("PaymentActivity", "Error during payment: ${e.message}")
@@ -58,7 +58,7 @@ class PaymentActivity : ComponentActivity() {
         android.util.Log.d("PaymentActivity", "Connected to server")
     }
 
-    private fun sendPaymentData(payType: Int, payAmount: Double) {
+    private fun sendPaymentData(productId: Int, productName: String, payType: Int, payAmount: Double, vatRate: Int) {
         val outputStream = socket?.getOutputStream() ?: throw IllegalStateException("Socket not connected")
         
         // Ödeme tipini doğru belirle
@@ -73,7 +73,18 @@ class PaymentActivity : ComponentActivity() {
         }
         
         android.util.Log.d("PaymentActivity", "PayType from intent: $payType, converted to PaymentType: $paymentTypeStr")
-        val paymentData = """{"PaymentType":"$paymentTypeStr","Amount":"%.2f"}\n""".format(payAmount)
+        
+        // Tüm verileri içeren JSON oluştur
+        val paymentData = """
+            {
+                "ProductId": $productId,
+                "ProductName": "$productName",
+                "PaymentType": "$paymentTypeStr",
+                "Amount": "%.2f",
+                "VatRate": $vatRate
+            }
+        """.trimIndent().format(payAmount) + "\n"
+        
         android.util.Log.d("PaymentActivity", "Sending data: $paymentData")
         outputStream.write(paymentData.toByteArray())
         outputStream.flush()
@@ -102,9 +113,10 @@ class PaymentActivity : ComponentActivity() {
                     // Make proper conversion from string code to int value
                     val responseCode = when (responseCodeStr) {
                         "00" -> 0  // Success
-                        "01" -> 1  // Nakit ödeme
+                        "01" -> 1  // Nakit ödeme veya QR ödeme (ProductId=1)
                         "02" -> 2  // Kredi kartı ile ödeme
-                        "03" -> 3  // QR ile ödeme
+                        "03" -> 3  // QR ile ödeme (diğer ProductId'ler)
+                        "99" -> 99 // İptal veya Hata
                         else -> {
                             android.util.Log.w("PaymentActivity", "Unknown response code: $responseCodeStr")
                             -1 // Unknown code

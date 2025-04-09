@@ -61,32 +61,23 @@ fun SaleScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    // Ödeme durumu mesajını oluştur
+    val paymentStatusMessage = when (responseCodeValue) {
+        0 -> "Ödeme başarılı (0)"
+        1 -> "Ödeme nakit yapıldı"
+        2 -> "Ödeme kredi kartı ile yapıldı"
+        3 -> "Ödeme QR kod ile yapıldı"
+        99 -> "İptal Edildi"
+        -1 -> "" // Hiçbir ödeme yapılmadıysa boş göster
+        else -> "Bilinmeyen durum: $responseCodeValue"
+    }
+
     // Response code değiştiğinde Snackbar göster
     LaunchedEffect(responseCodeValue) {
         if (responseCodeValue != -1) {
-            val message = when (responseCodeValue) {
-                0 -> "Ödeme başarılı (0)"
-                1 -> "Ödeme nakit yapıldı"
-                2 -> "Ödeme kredi kartı ile yapıldı"
-                3 -> "Ödeme QR kod ile yapıldı"
-                99 -> "İptal Edildi"
-                else -> "Bilinmeyen durum: $responseCodeValue"
-            }
-            Log.d("SaleScreen", "Showing Snackbar with message: $message for responseCode=$responseCodeValue")
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar(
-                    message = message,
-                    duration = SnackbarDuration.Long // Snackbar'ın daha uzun görünmesini sağla
-                )
-            }
-            // Debug için responseCode'u sıfırla - Sonraki ödeme için temiz başlangıç
-            // Bunu kaldırırsanız, değer değişmediği sürece Snackbar bir daha gösterilmez
-            if (responseCodeValue != 99) { // İptal durumunda zaten temizleniyor
-                // Kısa bir gecikme ekleyerek Snackbar'ın görünmesine izin ver
-                kotlinx.coroutines.delay(3000) // 3 saniye bekle
-                viewModel.updatePaymentResponseCode(-1)
-                Log.d("SaleScreen", "Reset responseCode to -1 after showing Snackbar")
-            }
+            Log.d("SaleScreen", "Payment status changed: $paymentStatusMessage for responseCode=$responseCodeValue")
+            // Artık responseCode'u sıfırlamıyoruz
+            // Böylece değer kalıcı olarak görüntülenebilir
         }
     }
 
@@ -95,7 +86,7 @@ fun SaleScreen(
         if (responseCodeValue == 99) {
             Log.d("SaleScreen", "Cancel code detected (99), clearing fields.")
             viewModel.clearFields()
-            // ViewModel'deki state'i resetle (opsiyonel, clearFields zaten -1 yapıyor)
+            // ViewModel'deki state'i resetle
             viewModel.updatePaymentResponseCode(-1) 
         }
     }
@@ -115,6 +106,21 @@ fun SaleScreen(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.headlineMedium
             )
+            
+            // Ödeme durumunu gösteren metin
+            if (paymentStatusMessage.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = paymentStatusMessage,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = when(responseCodeValue) {
+                        0, 1, 2, 3 -> MaterialTheme.colorScheme.primary
+                        99 -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
 

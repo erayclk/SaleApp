@@ -32,23 +32,49 @@ public class PaymentServer {
                     // Alınan veriyi String'e çevir
                     String jsonRequest = new String(buffer, 0, bytesRead);
                     System.out.println("Raw data received: " + jsonRequest);
+                    
+                    System.out.println("Received payment details:");
+                    if (jsonRequest.contains("\"ProductId\"")) {
+                        System.out.println("  - Product ID: " + extractJsonValue(jsonRequest, "ProductId"));
+                    }
+                    if (jsonRequest.contains("\"ProductName\"")) {
+                        System.out.println("  - Product Name: " + extractJsonValue(jsonRequest, "ProductName"));
+                    }
+                    if (jsonRequest.contains("\"Amount\"")) {
+                        System.out.println("  - Amount: " + extractJsonValue(jsonRequest, "Amount"));
+                    }
+                    if (jsonRequest.contains("\"VatRate\"")) {
+                        System.out.println("  - VAT Rate: " + extractJsonValue(jsonRequest, "VatRate"));
+                    }
 
                     // Yanıt oluştur
                     String jsonResponse;
                     
                     System.out.println("Analyzing payment type in request: " + jsonRequest);
                     
-                    if (jsonRequest.contains("\"PaymentType\":\"Credit\"")) {
-                        System.out.println("Detected Credit payment");
+                    // Extract the payment type directly using our method
+                    String paymentType = extractJsonValue(jsonRequest, "PaymentType");
+                    System.out.println("Extracted PaymentType: " + paymentType);
+                    
+                    if (paymentType.equals("Credit")) {
+                        System.out.println("Detected Credit payment - Responding with code 02");
                         jsonResponse = "{\"ResponseCode\":\"02\"}\n";
-                    } else if (jsonRequest.contains("\"PaymentType\":\"QR\"")) {
+                    } else if (paymentType.equals("QR")) {
                         System.out.println("Detected QR payment");
-                        jsonResponse = "{\"ResponseCode\":\"03\"}\n";
-                    } else if (jsonRequest.contains("\"PaymentType\":\"Cash\"")) {
+                        // Get the ProductId to determine which response to send
+                        String productId = extractJsonValue(jsonRequest, "ProductId");
+                        if (productId.equals("1")) {
+                            System.out.println("QR payment with ProductId 1 - Responding with code 01");
+                            jsonResponse = "{\"ResponseCode\":\"01\"}\n";
+                        } else {
+                            System.out.println("QR payment with other ProductId - Responding with code 03");
+                            jsonResponse = "{\"ResponseCode\":\"03\"}\n";
+                        }
+                    } else if (paymentType.equals("Cash")) {
                         System.out.println("Detected Cash payment - Responding with code 01");
                         jsonResponse = "{\"ResponseCode\":\"01\"}\n";
                     } else {
-                        System.out.println("Unknown payment type - Responding with code 99");
+                        System.out.println("Unknown payment type: '" + paymentType + "' - Responding with code 99");
                         jsonResponse = "{\"ResponseCode\":\"99\"}\n";
                     }
 
@@ -79,5 +105,23 @@ public class PaymentServer {
                 }
             }
         }
+    }
+
+    // Basit bir JSON değer çıkarma metodu
+    private static String extractJsonValue(String json, String key) {
+        // "key": value veya "key":"value" şeklindeki desenleri arar
+        String pattern = "\"" + key + "\"\\s*:\\s*([^,}\\s]+|\"[^\"]*\")";
+        java.util.regex.Pattern r = java.util.regex.Pattern.compile(pattern);
+        java.util.regex.Matcher m = r.matcher(json);
+        
+        if (m.find()) {
+            String value = m.group(1);
+            // Eğer değer tırnak içindeyse tırnakları kaldır
+            if (value.startsWith("\"") && value.endsWith("\"")) {
+                value = value.substring(1, value.length() - 1);
+            }
+            return value;
+        }
+        return "Not found";
     }
 }
