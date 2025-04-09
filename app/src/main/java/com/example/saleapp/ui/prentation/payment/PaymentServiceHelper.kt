@@ -15,15 +15,14 @@ class PaymentServiceHelper {
         payAmount: Double,
         vatRate: Int
     ): Intent {
-        return Intent(PaymentConstants.PAY_ACTION).apply {
-
-            `package` = "com.example.saleapp"
+        val intent = Intent(context, PaymentActivity::class.java)
+        intent.apply {
             putExtra(PaymentConstants.PRODUCT_ID, productId)
             putExtra(PaymentConstants.PRODUCT_NAME, productName)
             putExtra(PaymentConstants.PAY_AMOUNT, payAmount)
             putExtra(PaymentConstants.VAT_RATE, vatRate)
             putExtra(PaymentConstants.PAY_TYPE, PaymentConstants.PAYMENT_CREDIT)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
+        return intent
     }
 }

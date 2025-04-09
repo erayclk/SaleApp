@@ -32,13 +32,11 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
     val paymentResponseType: StateFlow<String> = _paymentResponseType
 
     private val _paymentResponseCode = MutableStateFlow(-1)
+    val paymentResponseCode: StateFlow<Int> = _paymentResponseCode
 
 
     private val _paymentData = MutableStateFlow("")
     val paymentData: StateFlow<String> = _paymentData
-
-    var paymentResponseCode by mutableStateOf(-1)
-
 
     var paymentResponseRaw by mutableStateOf("")
 
@@ -46,7 +44,21 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
     // Update methods
     fun updatePaymentResponseCode(code: Int) {
         Log.d("SaleViewModel", "Updating response code to: $code")
-        paymentResponseCode = code
+        
+        // Eski ve yeni değerleri karşılaştıralım
+        val oldValue = _paymentResponseCode.value
+        
+        // StateFlow'un değerini güncelleyin
+        _paymentResponseCode.value = code
+        
+        // Değişiklik sonrası onaylamak için debug log
+        Log.d("SaleViewModel", "Response code updated: old=$oldValue, new=$code, current=${_paymentResponseCode.value}")
+        
+        // Hemen bu değişikliği test etmek için
+        val currentValue = _paymentResponseCode.value
+        if (currentValue != code) {
+            Log.e("SaleViewModel", "ERROR: Value didn't update correctly! expected=$code, actual=$currentValue")
+        }
     }
 
     fun updatePaymentResponse(responseType: String, amount: Double) {
@@ -74,8 +86,9 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
         price=""
         vatRate=""
         errorMessage=""
-        Log.d("SaleViewModel", "Fields cleared")
-
+        // Reset payment response code as well
+        _paymentResponseCode.value = -1
+        Log.d("SaleViewModel", "All fields cleared, response code reset to -1")
     }
     fun resetAllFields(){
         productId=""

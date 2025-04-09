@@ -1,5 +1,6 @@
 package com.example.saleapp.ui.prentation.payment
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.util.Log
@@ -29,6 +30,7 @@ import com.example.saleapp.service.RegistryService
 import com.example.saleapp.ui.prentation.payment.qrcode.generateQRCode
 import com.example.saleapp.ui.prentation.sale.SaleViewModel
 import sendRequest
+import org.json.JSONObject
 
 
 @Composable
@@ -44,10 +46,24 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
     val paymentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val responseCode = result.data?.getIntExtra(PaymentConstants.RESPONSE_CODE, -1) ?: -1
-
-
-
+        Log.d("PaymentScreen", "Payment result received: resultCode=${result.resultCode}, data=${result.data}")
+        
+        var responseCode = -1 // Default değer
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            responseCode = result.data?.getIntExtra(PaymentConstants.RESPONSE_CODE, -1) ?: -1
+            Log.d("PaymentScreen", "Extracted responseCode from ActivityResult: $responseCode")
+        } else {
+            Log.w("PaymentScreen", "Payment activity did not return RESULT_OK or data was null. ResultCode: ${result.resultCode}")
+            // Hata veya iptal durumu için bir varsayılan kod atanabilir, örneğin 99
+            // responseCode = 99 
+        }
+        
+        // ViewModel'i Güncelle
+        viewModel.updatePaymentResponseCode(responseCode)
+        Log.d("PaymentScreen", "Updated shared ViewModel with responseCode=$responseCode. Current ViewModel state: ${viewModel.paymentResponseCode.value}")
+        
+        // Geri dön
+        navController.popBackStack()
     }
 
     LaunchedEffect(Unit) {
@@ -118,10 +134,12 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
         ) {
             Text("CreditPayment")
         }
+        /*
         Button(
             onClick = {
                 product?.let {
                     // Generate QR code
+
                     qrCodeBitmap.value = generateQRCode("product id=${it.id}, product name=${it.name}, price=${it.price}, vat rate=${it.vatRate}")
                     product?.let {
                         val intent = communicator.createQrPaymentIntent(
@@ -134,9 +152,9 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
 
                         paymentLauncher.launch(intent)
                         sendRequest { result ->
-                            // Bu blok UI thread’inde çalışır
+                            // Bu blok UI thread'inde çalışır
                             Log.d("OkHttp", "Sunucudan gelen yanıt: $result")
-                            // veya başka bir işlem
+
                         }
 
 
@@ -148,7 +166,7 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
         ) {
             Text("QR Code")
         }
-
+*/
         // Display QR code if available
         qrCodeBitmap.value?.let { bitmap ->
             Image(

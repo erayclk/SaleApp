@@ -34,49 +34,57 @@ fun SaleScreen(
     navController: NavHostController,
     onSubmit: (Product) -> Unit
 ) {
+    // ViewModel hash'ini logla
+    val viewModelHash = viewModel.hashCode()
+    Log.d("SaleScreen", "Screen: Hash=$viewModelHash | Composable instance")
+    
     val paymentType = remember { mutableStateOf("") }
     val paymentAmount = remember { mutableStateOf("") }
 
-    // Correct way to collect the StateFlow as state
-    val responseCode by remember {
-        navController.previousBackStackEntry
-            ?.savedStateHandle
-            ?.getStateFlow("responseCode", null)
-    }?.collectAsState() ?: remember { mutableStateOf(null) }
+    // Log on screen mount
+    LaunchedEffect(Unit) {
+        Log.d("SaleScreen", "Screen: Hash=$viewModelHash | Mounted, viewModel.paymentResponseCode.value=${viewModel.paymentResponseCode.value}")
+    }
 
-    LaunchedEffect(responseCode) {
-        responseCode?.let { code ->
-            // Update the ViewModel with the response code
-            viewModel.updatePaymentResponseCode(code)
+    // Sadece ViewModel'deki değere odaklan
+    val responseCodeValue = viewModel.paymentResponseCode.collectAsState().value
+    Log.d("SaleScreen", "Screen: Hash=$viewModelHash | Rendering with responseCodeValue=$responseCodeValue")
 
-            if (code == 99) { // Cancel code
-                viewModel.clearFields()
-                // Reset state (to prevent re-triggering)
-                navController.previousBackStackEntry?.savedStateHandle?.remove<Int>("responseCode")
-            }
+    // Cancel durumunda alanları temizlemek için ayrı bir LaunchedEffect ekleyebiliriz
+    LaunchedEffect(responseCodeValue) {
+        if (responseCodeValue == 99) {
+            Log.d("SaleScreen", "Cancel code detected (99), clearing fields.")
+            viewModel.clearFields()
+            // ViewModel'deki state'i resetle (opsiyonel, clearFields zaten -1 yapıyor)
+             viewModel.updatePaymentResponseCode(-1) 
         }
     }
-/*
-    val responseCodeValue = viewModel.paymentResponseCode.collectAsState().value
-    Text("Response Code: ${
-        when (responseCodeValue) {
-            0 -> "Success (0)"
-            1 -> "Error (1)"
-            99 -> "Cancelled (99)"
-            else -> "Unknown ($responseCodeValue)"
-        }
-    }")*/
-
+    
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Sale Screen",
+            "Satış Ekranı",
             modifier = Modifier.align(Alignment.CenterHorizontally),
             style = MaterialTheme.typography.headlineMedium
         )
+        
+        Text(
+            text = "İşlem Durumu: ${
+                when {
+                    responseCodeValue == 0 -> "Başarılı (0)"
+                    responseCodeValue == 1 -> "Hata (1)" 
+                    responseCodeValue == 99 -> "İptal Edildi (99)"
+                    else -> "Bilinmiyor ($responseCodeValue)" 
+                }
+            }",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = viewModel.productId,
@@ -119,6 +127,7 @@ fun SaleScreen(
                 Text("Submit")
             }
         }
+        
         Text(viewModel.errorMessage)
     }
 }

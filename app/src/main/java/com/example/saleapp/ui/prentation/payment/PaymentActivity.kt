@@ -78,21 +78,41 @@ class PaymentActivity : ComponentActivity() {
                 val response = String(buffer, 0, bytesRead)
                 android.util.Log.d("PaymentActivity", "Raw server response: $response (Bytes: $bytesRead)")
 
-                // Add debug logging here
-                val responseCode = when {
-                    response.contains("01") -> 0  // Credit success
-                    response.contains("02") -> 0  // QR success
-                    else -> 1  // Error
-                }
-                android.util.Log.d("PaymentActivity", "Determined response code: $responseCode")
-
-                runOnUiThread {
-                    val resultIntent = Intent().apply {
-                        putExtra(PaymentConstants.RESPONSE_CODE, responseCode)
-                        putExtra(PaymentConstants.RESPONSE_DATA, response)
+                // Parse JSON response to extract ResponseCode
+                try {
+                    val jsonResponse = org.json.JSONObject(response)
+                    val responseCodeStr = jsonResponse.optString("ResponseCode", "")
+                    
+                    // Log the extracted ResponseCode
+                    android.util.Log.d("PaymentActivity", "JSON ResponseCode: $responseCodeStr")
+                    
+                    // Make proper conversion from string code to int value
+                    val responseCode = when (responseCodeStr) {
+                        "00" -> 0  // Success
+                        "01" -> 1  // Error with code 01
+                        "02" -> 2  // Error with code 02
+                        else -> -1 // Unknown code
                     }
-                    setResult(Activity.RESULT_OK, resultIntent)
-                    finish()
+                    
+                    android.util.Log.d("PaymentActivity", "Determined response code: $responseCode")
+
+                    runOnUiThread {
+                        // Intent'i SaleApp'e göndermek için ayarla
+                        val resultIntent = Intent().apply {
+                            putExtra(PaymentConstants.RESPONSE_CODE, responseCode)
+                            putExtra(PaymentConstants.RESPONSE_DATA, response)
+                            putExtra("PAYMENT_COMPLETED", true)
+                        }
+                        
+                        // Normal result için
+                        android.util.Log.d("PaymentActivity", "Setting result with responseCode=$responseCode")
+                        setResult(Activity.RESULT_OK, resultIntent)
+                        
+                        finish()
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("PaymentActivity", "Error parsing JSON response: ${e.message}")
+                    handleError()
                 }
             } else {
                 android.util.Log.e("PaymentActivity", "No data received from server")

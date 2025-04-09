@@ -46,13 +46,14 @@ class RegistryService : Service() {
                 val transaction = Transaction(
                     productId = productId,
                     productName = productName,
-                    amount = amount,
+                    price = amount,
                     vatRate = vatRate,
                     status = PaymentConstants.STATUS_WAITING,
                     paymentType = paymentType
                 )
 
                 // Insert and get the ID
+                /*
                 val id = db.transactionDao().insert(transaction)
                 android.util.Log.d("RegistryService", "Transaction inserted with ID: $id")                // Update status to completed
                 db.transactionDao().updateStatusAndType(
@@ -60,8 +61,9 @@ class RegistryService : Service() {
                     status = PaymentConstants.STATUS_COMPLETED,
                     paymentType = paymentType
                 )
-                
+                */
                 // Verify the transaction was saved correctly
+                /*
                 val savedTransaction = db.transactionDao().getTransactionById(id.toInt())
                 android.util.Log.d("RegistryService", """
                     Saved transaction verification:
@@ -73,7 +75,7 @@ class RegistryService : Service() {
                     Payment Type: ${savedTransaction?.paymentType}
                     VAT Rate: ${savedTransaction?.vatRate}
                 """.trimIndent())
-
+*/
             } catch (e: Exception) {
                 android.util.Log.e("RegistryService", "Error processing payment: ${e.message}")
                 e.printStackTrace()
