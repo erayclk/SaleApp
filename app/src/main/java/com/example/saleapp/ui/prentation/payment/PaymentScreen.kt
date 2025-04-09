@@ -52,6 +52,14 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             responseCode = result.data?.getIntExtra(PaymentConstants.RESPONSE_CODE, -1) ?: -1
             Log.d("PaymentScreen", "Extracted responseCode from ActivityResult: $responseCode")
+            
+            // Get the full response data
+            val responseData = result.data?.getStringExtra(PaymentConstants.RESPONSE_DATA) ?: ""
+            if (responseData.isNotEmpty()) {
+                Log.d("PaymentScreen", "Full response data: $responseData")
+                // Store the raw response in the ViewModel
+                viewModel.updateRawResponse(responseData)
+            }
         } else {
             Log.w("PaymentScreen", "Payment activity did not return RESULT_OK or data was null. ResultCode: ${result.resultCode}")
             // Hata veya iptal durumu için bir varsayılan kod atanabilir, örneğin 99

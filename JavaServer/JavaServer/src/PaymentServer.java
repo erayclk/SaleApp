@@ -48,7 +48,7 @@ public class PaymentServer {
                     }
 
                     // Yanıt oluştur
-                    String jsonResponse;
+                    String responseCode;
                     
                     System.out.println("Analyzing payment type in request: " + jsonRequest);
                     
@@ -58,25 +58,37 @@ public class PaymentServer {
                     
                     if (paymentType.equals("Credit")) {
                         System.out.println("Detected Credit payment - Responding with code 02");
-                        jsonResponse = "{\"ResponseCode\":\"02\"}\n";
+                        responseCode = "02";
                     } else if (paymentType.equals("QR")) {
                         System.out.println("Detected QR payment");
                         // Get the ProductId to determine which response to send
                         String productId = extractJsonValue(jsonRequest, "ProductId");
                         if (productId.equals("1")) {
                             System.out.println("QR payment with ProductId 1 - Responding with code 01");
-                            jsonResponse = "{\"ResponseCode\":\"01\"}\n";
+                            responseCode = "01";
                         } else {
                             System.out.println("QR payment with other ProductId - Responding with code 03");
-                            jsonResponse = "{\"ResponseCode\":\"03\"}\n";
+                            responseCode = "03";
                         }
                     } else if (paymentType.equals("Cash")) {
                         System.out.println("Detected Cash payment - Responding with code 01");
-                        jsonResponse = "{\"ResponseCode\":\"01\"}\n";
+                        responseCode = "01";
                     } else {
                         System.out.println("Unknown payment type: '" + paymentType + "' - Responding with code 99");
-                        jsonResponse = "{\"ResponseCode\":\"99\"}\n";
+                        responseCode = "99";
                     }
+
+                    // Extract all data from the request
+                    String productId = extractJsonValue(jsonRequest, "ProductId");
+                    String productName = extractJsonValue(jsonRequest, "ProductName");
+                    String amount = extractJsonValue(jsonRequest, "Amount");
+                    String vatRate = extractJsonValue(jsonRequest, "VatRate");
+
+                    // Create a full response with all the data
+                    String jsonResponse = String.format(
+                        "{\"ResponseCode\":\"%s\",\"ProductId\":%s,\"ProductName\":\"%s\",\"PaymentType\":\"%s\",\"Amount\":\"%s\",\"VatRate\":%s}\n",
+                        responseCode, productId, productName, paymentType, amount, vatRate
+                    );
 
                     System.out.println("Sending response: " + jsonResponse.trim());
 

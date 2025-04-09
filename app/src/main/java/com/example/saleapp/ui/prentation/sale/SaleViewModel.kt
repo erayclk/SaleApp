@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.Socket
+import org.json.JSONObject
 
 class SaleViewModel (application: Application): AndroidViewModel(application){
     var productId by mutableStateOf("")
@@ -40,6 +41,81 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
 
     var paymentResponseRaw by mutableStateOf("")
 
+
+    // Payment Type ve Amount için ayrı state'ler
+    var paymentType by mutableStateOf("")
+    var paymentAmount by mutableStateOf("")
+
+    // Enable the Room database
+    val transactionDao = TransactionDatabase.getDatabase(application).transactionDao()
+
+    // Payment data state for the latest transaction
+    private val _latestTransaction = MutableStateFlow<Transaction?>(null)
+    val latestTransaction: StateFlow<Transaction?> = _latestTransaction
+
+    // Method to save payment data to Room DB
+    fun savePaymentResponseToDatabase(responseData: String) {
+        viewModelScope.launch {
+            try {
+                // Parse the JSON response
+                val jsonObject = JSONObject(responseData)
+                
+                // Extract values from JSON
+                val productId = jsonObject.optInt("ProductId", -1)
+                val productName = jsonObject.optString("ProductName", "")
+                val paymentTypeStr = jsonObject.optString("PaymentType", "Unknown")
+                val amount = jsonObject.optString("Amount", "0.0").toDoubleOrNull() ?: 0.0
+                val vatRate = jsonObject.optInt("VatRate", 0)
+                val responseCode = jsonObject.optString("ResponseCode", "-1")
+                
+                // Convert payment type string to int
+                val paymentTypeInt = when(paymentTypeStr) {
+                    "Cash" -> 1
+                    "Credit" -> 2
+                    "QR" -> 3
+                    else -> -1
+                }
+                
+                // Convert response code to status
+                val status = when(responseCode) {
+                    "00" -> 0
+                    "01" -> 1
+                    "02" -> 2
+                    "03" -> 3
+                    "99" -> 99
+                    else -> -1
+                }
+                
+                // Create transaction object
+                val transaction = Transaction(
+                    productId = productId,
+                    productName = productName,
+                    price = amount,
+                    vatRate = vatRate,
+                    status = status,
+                    paymentType = paymentTypeInt
+                )
+                
+                // Save to database
+                transactionDao.insert(transaction)
+                
+                Log.d("SaleViewModel", "Transaction saved to database: $transaction")
+            } catch (e: Exception) {
+                Log.e("SaleViewModel", "Error saving transaction to database: ${e.message}")
+            }
+        }
+    }
+
+    // Update raw response and save to DB
+    fun updateRawResponse(response: String) {
+        Log.d("SaleViewModel", "Updating raw response to: $response")
+        paymentResponseRaw = response
+        
+        // Save to database if response is not empty
+        if (response.isNotEmpty()) {
+            savePaymentResponseToDatabase(response)
+        }
+    }
 
     // Update methods
     fun updatePaymentResponseCode(code: Int) {
@@ -67,18 +143,6 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
         paymentAmount = amount.toString()
         _paymentData.value = """{"PaymentType":"$responseType","Amount":"$amount"}"""
     }
-
-    fun updateRawResponse(response: String) {
-        Log.d("SaleViewModel", "Updating raw response to: $response")
-        paymentResponseRaw = response
-    }
-    // Payment Type ve Amount için ayrı state'ler
-    var paymentType by mutableStateOf("")
-    var paymentAmount by mutableStateOf("")
-
-   // val transactionDao = TransactionDatabase.getDatabase(application).transactionDao()
-
-
 
     fun clearFields(){
         productId=""
@@ -138,5 +202,16 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
 
     }
 
-
+    // Load the latest transaction from the database
+    fun loadLatestTransaction() {
+        viewModelScope.launch {
+            try {
+                val transaction = transactionDao.getLastTransaction()
+                _latestTransaction.value = transaction
+                Log.d("SaleViewModel", "Latest transaction loaded: $transaction")
+            } catch (e: Exception) {
+                Log.e("SaleViewModel", "Error loading latest transaction: ${e.message}")
+            }
+        }
+    }
 }

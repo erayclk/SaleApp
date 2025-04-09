@@ -72,6 +72,18 @@ fun SaleScreen(
         else -> "Bilinmeyen durum: $responseCodeValue"
     }
 
+    // Load latest transaction when payment is completed
+    LaunchedEffect(responseCodeValue) {
+        if (responseCodeValue != -1) {
+            Log.d("SaleScreen", "Payment status changed: $paymentStatusMessage for responseCode=$responseCodeValue")
+            // Load the latest transaction
+            viewModel.loadLatestTransaction()
+        }
+    }
+    
+    // Get the latest transaction
+    val latestTransaction = viewModel.latestTransaction.collectAsState().value
+
     // Response code değiştiğinde Snackbar göster
     LaunchedEffect(responseCodeValue) {
         if (responseCodeValue != -1) {
@@ -102,7 +114,7 @@ fun SaleScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Satış Ekranı",
+                "Payment Screen ",
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.headlineMedium
             )
@@ -120,6 +132,8 @@ fun SaleScreen(
                         else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
+                
+
             }
             
             Spacer(modifier = Modifier.height(16.dp))
