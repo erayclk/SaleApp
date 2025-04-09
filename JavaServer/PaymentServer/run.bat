@@ -1,0 +1,3 @@
+@echo off
+echo Starting Payment Server...
+java -cp bin;lib\json.jar PaymentServer

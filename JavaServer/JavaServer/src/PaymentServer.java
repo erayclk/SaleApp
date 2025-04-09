@@ -89,7 +89,7 @@ public class PaymentServer {
                         log("Detected Credit payment - Responding with code 02");
                         updateStatus("Processing Credit Card Payment: " + amount + " TL");
                         
-                        // Show credit card image with amount
+                        // Kredi kartı resmini tutarla birlikte göster
                         currentAmount = amount;
                         showCardImage();
                         
@@ -98,13 +98,13 @@ public class PaymentServer {
                         log("Detected QR payment");
                         updateStatus("Processing QR Payment: " + amount + " TL");
                         
-                        // Get the ProductId to determine which response to send
+                        // Hangi yanıtın gönderileceğini belirlemek için Ürün Kimliğini alın
                         String productId = extractJsonValue(jsonRequest, "ProductId");
                         if (productId.equals("1")) {
-                            log("QR payment with ProductId 1 - Responding with code 01");
+
                             responseCode = "01";
                         } else {
-                            log("QR payment with other ProductId - Responding with code 03");
+
                             responseCode = "03";
                         }
                     } else if (paymentType.equals("Cash")) {
@@ -119,18 +119,18 @@ public class PaymentServer {
                         responseCode = "99";
                     }
 
-                    // Extract all data from the request
+                    // İstekteki tüm verileri çıkarın
                     String productId = extractJsonValue(jsonRequest, "ProductId");
                     String productName = extractJsonValue(jsonRequest, "ProductName");
                     String vatRate = extractJsonValue(jsonRequest, "VatRate");
 
-                    // Create a full response with all the data
+                    // Tüm verilerle tam bir yanıt oluşturun
                     String jsonResponse = String.format(
                         "{\"ResponseCode\":\"%s\",\"ProductId\":%s,\"ProductName\":\"%s\",\"PaymentType\":\"%s\",\"Amount\":\"%s\",\"VatRate\":%s}\n",
                         responseCode, productId, productName, paymentType, amount, vatRate
                     );
 
-                    log("Sending response: " + jsonResponse.trim());
+
                     
                     if (paymentType.equals("Credit")) {
                         updateStatus("Credit Card Payment Successful!");
@@ -186,13 +186,13 @@ public class PaymentServer {
     }
     
     private static void createAndShowGUI() {
-        // Create and set up the window
+        // Pencereyi oluştur ve ayarla
         frame = new JFrame("Payment Server");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(600, 500);
         frame.setLayout(new BorderLayout());
         
-        // Status panel at top
+        // Üst taraftaki durum paneli
         JPanel statusPanel = new JPanel();
         statusPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         statusLabel = new JLabel("Starting server...");
@@ -200,7 +200,7 @@ public class PaymentServer {
         statusPanel.add(statusLabel);
         frame.add(statusPanel, BorderLayout.NORTH);
         
-        // Center panel for card image
+        // Kart görseli için orta panel
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BorderLayout());
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -209,7 +209,7 @@ public class PaymentServer {
         centerPanel.add(imageLabel, BorderLayout.CENTER);
         frame.add(centerPanel, BorderLayout.CENTER);
         
-        // Log panel at bottom
+        // Alttaki log paneli
         JPanel logPanel = new JPanel(new BorderLayout());
         logPanel.setBorder(BorderFactory.createTitledBorder("Server Log"));
         logArea = new JTextArea(10, 50);
@@ -218,11 +218,11 @@ public class PaymentServer {
         logPanel.add(scrollPane);
         frame.add(logPanel, BorderLayout.SOUTH);
         
-        // Display the window
+        // Pencereyi görüntüle
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
         
-        // Add shutdown hook to close resources
+        // Kaynakları kapat
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -255,29 +255,23 @@ public class PaymentServer {
         SwingUtilities.invokeLater(() -> {
             if (imageLabel != null) {
                 try {
-                    // Use the specific file path
+                    // Belirli dosya yolunu kullan
                     File cardFile = new File("C:/projeler/SaleApp/JavaServer/JavaServer/out/production/JavaServer/res/drawable/card.png");
                     
                     if (!cardFile.exists()) {
                         log("Card image not found at: " + cardFile.getAbsolutePath());
-                        
-                        // Make sure the directory exists
-                        File directory = new File("C:/projeler/SaleApp/JavaServer/JavaServer/out/production/JavaServer/res/drawable");
-                        if (!directory.exists()) {
-                            directory.mkdirs();
-                            log("Created directory: " + directory.getAbsolutePath());
-                        }
+
+
                         
                         imageLabel.setText("Card image not found");
                         return;
                     }
+
                     
-                    log("Using card image from: " + cardFile.getAbsolutePath());
-                    
-                    // Load the card.png image
+                    // card.png resmini yükleyin
                     BufferedImage cardImage = ImageIO.read(cardFile);
                     
-                    // Create a copy to draw on
+                    // Üzerine çizim yapmak için bir kopya oluşturun
                     BufferedImage copyImage = new BufferedImage(
                             cardImage.getWidth(), 
                             cardImage.getHeight(), 
@@ -285,18 +279,18 @@ public class PaymentServer {
                     
                     Graphics2D g2d = copyImage.createGraphics();
                     
-                    // Draw the original image
+                    // Orijinal resmi çiz
                     g2d.drawImage(cardImage, 0, 0, null);
                     
-                    // Draw the amount on top
+                    // Tutarı üstüne çiz
                     g2d.setColor(Color.BLACK);
                     g2d.setFont(new Font("Arial", Font.BOLD, 24));
                     
-                    // Draw amount in the right-middle position
+                    // Sağ ortadaki pozisyondaki çekme miktarı
                     String amountText = currentAmount + " TL";
                     int textWidth = g2d.getFontMetrics().stringWidth(amountText);
                     
-                    // Position the text in the right-middle area of the card
+                    // Metni kartın sağ orta kısmına yerleştirin
                     int xPosition = cardImage.getWidth() - textWidth - 150; // 150 pixels from the right edge (moved more to the left)
                     int yPosition = cardImage.getHeight() / 2; // vertically centered
                     
@@ -304,7 +298,7 @@ public class PaymentServer {
                     
                     g2d.dispose();
                     
-                    // Set the image with amount
+                    // Kaynakları silmek için kapatmayı ekleyin
                     imageLabel.setIcon(new ImageIcon(copyImage));
                     imageLabel.setText("");
                     frame.repaint();
