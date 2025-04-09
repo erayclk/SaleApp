@@ -60,7 +60,20 @@ class PaymentActivity : ComponentActivity() {
 
     private fun sendPaymentData(payType: Int, payAmount: Double) {
         val outputStream = socket?.getOutputStream() ?: throw IllegalStateException("Socket not connected")
-        val paymentData = """{"PaymentType":"${if (payType == 2) "Credit" else "QR"}","Amount":"%.2f"}\n""".format(payAmount)
+        
+        // Ödeme tipini doğru belirle
+        val paymentTypeStr = when(payType) {
+            1 -> "Cash"  // Nakit ödeme
+            2 -> "Credit" // Kredi kartı
+            3 -> "QR"    // QR ödeme
+            else -> {
+                android.util.Log.w("PaymentActivity", "Unknown payment type: $payType - defaulting to Unknown")
+                "Unknown"
+            }
+        }
+        
+        android.util.Log.d("PaymentActivity", "PayType from intent: $payType, converted to PaymentType: $paymentTypeStr")
+        val paymentData = """{"PaymentType":"$paymentTypeStr","Amount":"%.2f"}\n""".format(payAmount)
         android.util.Log.d("PaymentActivity", "Sending data: $paymentData")
         outputStream.write(paymentData.toByteArray())
         outputStream.flush()
@@ -89,9 +102,13 @@ class PaymentActivity : ComponentActivity() {
                     // Make proper conversion from string code to int value
                     val responseCode = when (responseCodeStr) {
                         "00" -> 0  // Success
-                        "01" -> 1  // Error with code 01
-                        "02" -> 2  // Error with code 02
-                        else -> -1 // Unknown code
+                        "01" -> 1  // Nakit ödeme
+                        "02" -> 2  // Kredi kartı ile ödeme
+                        "03" -> 3  // QR ile ödeme
+                        else -> {
+                            android.util.Log.w("PaymentActivity", "Unknown response code: $responseCodeStr")
+                            -1 // Unknown code
+                        }
                     }
                     
                     android.util.Log.d("PaymentActivity", "Determined response code: $responseCode")

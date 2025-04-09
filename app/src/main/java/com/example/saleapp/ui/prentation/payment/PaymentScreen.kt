@@ -92,20 +92,28 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
                 )
                 navController.popBackStack()
                 viewModel.clearFields()
-
-
             },
         ) {
             Text("Cancel")
         }
         Button(
             onClick = {
-                navController.previousBackStackEntry?.savedStateHandle?.set(
-                    "responseCode",
-                    1
-                )
-                viewModel.clearFields()
-                navController.popBackStack()
+
+
+
+                product?.let {
+                    val intent = communicator.createCachPaymentIntent(
+                        context = context,
+                        productId = it.id,
+                        productName = it.name,
+                        payAmount = it.price,
+                        vatRate = it.vatRate
+                    )
+                    paymentLauncher.launch(intent)
+                }
+
+                
+
             },
             modifier = Modifier.padding(top = 16.dp)
         ) {
@@ -114,7 +122,6 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
         Button(
             onClick = {
                 product?.let {
-
                     val intent = communicator.createCreditPaymentIntent(
                         context = context,
                         productId = it.id,
@@ -122,51 +129,52 @@ fun PaymentScreen(navController: NavHostController, viewModel: SaleViewModel) {
                         payAmount = it.price,
                         vatRate = it.vatRate
                     )
-
                     paymentLauncher.launch(intent)
-
-
-
-
+                    sendRequest { result ->
+                        Log.d("OkHttp", " kredi Sunucudan gelen yanıt: $result")
+                    }
                 }
             },
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("CreditPayment")
         }
-        /*
+
         Button(
             onClick = {
+                // QR ödeme için response code 3
+                viewModel.updatePaymentResponseCode(3)
+                Log.d("PaymentScreen", "QR payment selected, setting responseCode=3")
+                
                 product?.let {
-                    // Generate QR code
-
+                    // QR kodu göster
                     qrCodeBitmap.value = generateQRCode("product id=${it.id}, product name=${it.name}, price=${it.price}, vat rate=${it.vatRate}")
-                    product?.let {
-                        val intent = communicator.createQrPaymentIntent(
-                            context = context,
-                            productId = it.id,
-                            productName = it.name,
-                            payAmount = it.price,
-                            vatRate = it.vatRate
-                        )
+                    
+                    // Gerçek bir QR işlemi yapmak isterseniz bu kısmı aktif edebilirsiniz
 
-                        paymentLauncher.launch(intent)
-                        sendRequest { result ->
-                            // Bu blok UI thread'inde çalışır
-                            Log.d("OkHttp", "Sunucudan gelen yanıt: $result")
-
-                        }
-
-
-
+                    val intent = communicator.createQrPaymentIntent(
+                        context = context,
+                        productId = it.id,
+                        productName = it.name,
+                        payAmount = it.price,
+                        vatRate = it.vatRate
+                    )
+                    paymentLauncher.launch(intent)
+                    sendRequest { result ->
+                        Log.d("OkHttp", " qr Sunucudan gelen yanıt: $result")
                     }
+
                 }
+                
+                // QR kodu gösterdikten sonra 3 saniye sonra geri dönmeyi devre dışı bıraktım
+                // Böylece kullanıcı QR kodu görüntüleyebilir
+                // navController.popBackStack()
             },
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("QR Code")
         }
-*/
+
         // Display QR code if available
         qrCodeBitmap.value?.let { bitmap ->
             Image(

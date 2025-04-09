@@ -1,5 +1,8 @@
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class PaymentServer {
     public static void main(String[] args) throws IOException {
@@ -32,12 +35,20 @@ public class PaymentServer {
 
                     // Yanıt oluştur
                     String jsonResponse;
-
+                    
+                    System.out.println("Analyzing payment type in request: " + jsonRequest);
+                    
                     if (jsonRequest.contains("\"PaymentType\":\"Credit\"")) {
-                        jsonResponse = "{\"ResponseCode\":\"01\"}\n";
-                    } else if (jsonRequest.contains("\"PaymentType\":\"QR\"")) {
+                        System.out.println("Detected Credit payment");
                         jsonResponse = "{\"ResponseCode\":\"02\"}\n";
+                    } else if (jsonRequest.contains("\"PaymentType\":\"QR\"")) {
+                        System.out.println("Detected QR payment");
+                        jsonResponse = "{\"ResponseCode\":\"03\"}\n";
+                    } else if (jsonRequest.contains("\"PaymentType\":\"Cash\"")) {
+                        System.out.println("Detected Cash payment - Responding with code 01");
+                        jsonResponse = "{\"ResponseCode\":\"01\"}\n";
                     } else {
+                        System.out.println("Unknown payment type - Responding with code 99");
                         jsonResponse = "{\"ResponseCode\":\"99\"}\n";
                     }
 

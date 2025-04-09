@@ -25,4 +25,38 @@ class PaymentServiceHelper {
         }
         return intent
     }
+    fun createQrPaymentIntent(
+        context: Context,
+        productId: Int,
+        productName: String,
+        payAmount: Double,
+        vatRate: Int
+    ): Intent {
+        val intent = Intent(context, PaymentActivity::class.java)
+        intent.apply {
+            putExtra(PaymentConstants.PRODUCT_ID, productId)
+            putExtra(PaymentConstants.PRODUCT_NAME, productName)
+            putExtra(PaymentConstants.PAY_AMOUNT, payAmount)
+            putExtra(PaymentConstants.VAT_RATE, vatRate)
+            putExtra(PaymentConstants.PAY_TYPE, PaymentConstants.PAYMENT_QR)
+        }
+        return intent
+    }
+    fun createCachPaymentIntent(
+        context: Context,
+        productId: Int,
+        productName: String,
+        payAmount: Double,
+        vatRate: Int
+    ): Intent {
+        val intent = Intent(context, PaymentActivity::class.java)
+        intent.apply {
+            putExtra(PaymentConstants.PRODUCT_ID, productId)
+            putExtra(PaymentConstants.PRODUCT_NAME, productName)
+            putExtra(PaymentConstants.PAY_AMOUNT, payAmount)
+            putExtra(PaymentConstants.VAT_RATE, vatRate)
+            putExtra(PaymentConstants.PAY_TYPE, PaymentConstants.PAYMENT_CASH)
+        }
+        return intent
+    }
 }
