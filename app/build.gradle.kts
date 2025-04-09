@@ -85,7 +85,9 @@ dependencies {
 
     implementation("androidx.room:room-ktx:$room_version")
 
+    val compose_version ="1.5.0"
 
+    implementation("androidx.compose.material:material-icons-extended:$compose_version")
     // OkHttp
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation ("com.squareup.retrofit2:retrofit:2.9.0")

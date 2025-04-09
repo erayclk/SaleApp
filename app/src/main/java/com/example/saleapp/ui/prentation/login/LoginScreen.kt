@@ -1,80 +1,91 @@
 package com.example.saleapp.ui.prentation.login
 
-import androidx.collection.emptyLongSet
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
+import com.example.saleapp.ui.presentation.login.LoginViewModel
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(viewModel: LoginViewModel= viewModel(),onLoginSuccess:()->Unit){
+fun LoginScreen(
+    viewModel: LoginViewModel = viewModel(),
+    onLoginSuccess: () -> Unit
+) {
     val userId by viewModel.userId.collectAsState()
     val password by viewModel.password.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
 
-    Column (modifier = Modifier.fillMaxSize(),
-    horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
 
-        Text(
-            text = "Login",
-            fontSize = 25.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.SansSerif
-        )
-        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-        OutlinedTextField(value = userId,
-            onValueChange = viewModel::onUserIdChange,
-            label = { Text("User Id") }
-        )
+            Text(
+                text = "Login",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-        OutlinedTextField(value = password,
-            onValueChange = viewModel::onPasswordChange,
-            label = { Text("Password") }
-        )
-        Modifier.padding(25.dp)
-        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-        Button(onClick = {
-            if(viewModel.validateLogin()){
-                onLoginSuccess()
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = userId,
+                onValueChange = viewModel::onUserIdChange,
+                label = { Text("User ID") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = viewModel::onPasswordChange,
+                label = { Text("Password") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    if (viewModel.validateLogin()) {
+                        onLoginSuccess()
+                    } else {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Kullanıcı ID veya şifre hatalı.")
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Giriş Yap")
             }
-            else{
-                //login failed
-            }
-
-
         }
-        ) { Text(text = "Login") }
-
-
     }
-
-
-
 }
+
+
+
+
 
 
