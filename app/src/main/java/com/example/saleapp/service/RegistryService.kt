@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import com.example.saleapp.model.PaymentConstants
-
 import com.example.saleapp.room.TransactionDatabase
 import com.example.saleapp.model.Transaction
 
@@ -41,7 +40,45 @@ class RegistryService : Service() {
             Payment Type: $paymentType
         """.trimIndent())
 
+        ioScope.launch {
+            try {
+                // Create initial transaction record
+                val transaction = Transaction(
+                    productId = productId,
+                    productName = productName,
+                    amount = amount,
+                    vatRate = vatRate,
+                    status = PaymentConstants.STATUS_WAITING,
+                    paymentType = paymentType
+                )
 
+                // Insert and get the ID
+                val id = db.transactionDao().insert(transaction)
+                android.util.Log.d("RegistryService", "Transaction inserted with ID: $id")                // Update status to completed
+                db.transactionDao().updateStatusAndType(
+                    id = id.toInt(),
+                    status = PaymentConstants.STATUS_COMPLETED,
+                    paymentType = paymentType
+                )
+                
+                // Verify the transaction was saved correctly
+                val savedTransaction = db.transactionDao().getTransactionById(id.toInt())
+                android.util.Log.d("RegistryService", """
+                    Saved transaction verification:
+                    ID: ${savedTransaction?.id}
+                    Product ID: ${savedTransaction?.productId}
+                    Product Name: ${savedTransaction?.productName}
+                    Amount: ${savedTransaction?.amount}
+                    Status: ${savedTransaction?.status}
+                    Payment Type: ${savedTransaction?.paymentType}
+                    VAT Rate: ${savedTransaction?.vatRate}
+                """.trimIndent())
+
+            } catch (e: Exception) {
+                android.util.Log.e("RegistryService", "Error processing payment: ${e.message}")
+                e.printStackTrace()
+            }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

@@ -82,8 +82,7 @@ class SaleViewModel (application: Application): AndroidViewModel(application){
 
 
 
-    }
-    fun insertTransaction(product: Product, status: Int, paymentType: Int) {
+    }    fun insertTransaction(product: Product, status: Int, paymentType: Int) {
         val transaction = Transaction(
             productId = product.id,
             productName = product.name,
