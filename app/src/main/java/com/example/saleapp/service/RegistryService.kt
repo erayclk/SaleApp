@@ -8,6 +8,7 @@ import com.example.saleapp.room.TransactionDatabase
 import com.example.saleapp.model.Transaction
 import android.graphics.Bitmap
 import android.util.Log
+import com.example.saleapp.utils.NetworkUtils
 import org.json.JSONObject
 import java.io.OutputStream
 import java.net.Socket
@@ -20,7 +21,6 @@ class RegistryService : Service() {
 
     private lateinit var db: TransactionDatabase
     private val ioScope = CoroutineScope(Dispatchers.IO)
-    private val SERVER_IP = "192.168.1.38"
     private val SERVER_PORT = 5000
 
     override fun onCreate() {
@@ -109,11 +109,15 @@ class RegistryService : Service() {
         }
     }
     
-    private fun sendQRRequestToServer(jsonRequest: String): String {
+    private suspend fun sendQRRequestToServer(jsonRequest: String): String {
         var response = ""
         try {
-            Log.d("RegistryService", "Connecting to server $SERVER_IP:$SERVER_PORT")
-            val socket = Socket(SERVER_IP, SERVER_PORT)
+            // Get server IP dynamically
+            val serverIp = NetworkUtils.getServerIpAddress(applicationContext)
+            val serverPort = NetworkUtils.getServerPort()
+            
+            Log.d("RegistryService", "Connecting to server $serverIp:$serverPort")
+            val socket = Socket(serverIp, serverPort)
             
             // Request gönder
             val outputStream = socket.getOutputStream()

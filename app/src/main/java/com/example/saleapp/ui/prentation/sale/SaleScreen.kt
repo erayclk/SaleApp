@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,20 +24,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.saleapp.model.Product
-import org.json.JSONObject
-import androidx.compose.runtime.collectAsState
-import kotlinx.coroutines.flow.StateFlow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 @SuppressLint("UnrememberedMutableState")
 @Composable
@@ -41,132 +40,84 @@ fun SaleScreen(
     navController: NavHostController,
     onSubmit: (Product) -> Unit
 ) {
-    // ViewModel hash'ini logla
-    val viewModelHash = viewModel.hashCode()
-    Log.d("SaleScreen", "Screen: Hash=$viewModelHash | Composable instance")
-    
-    val paymentType = remember { mutableStateOf("") }
-    val paymentAmount = remember { mutableStateOf("") }
-
-    // Log on screen mount
-    LaunchedEffect(Unit) {
-        Log.d("SaleScreen", "Screen: Hash=$viewModelHash | Mounted, viewModel.paymentResponseCode.value=${viewModel.paymentResponseCode.value}")
-    }
-
-    // Sadece ViewModel'deki değere odaklan
-    val responseCodeValue = viewModel.paymentResponseCode.collectAsState().value
-    Log.d("SaleScreen", "Screen: Hash=$viewModelHash | Rendering with responseCodeValue=$responseCodeValue")
-
-    // Snackbar için CoroutineScope ve SnackbarHostState
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
-    // Ödeme durumu mesajını oluştur
-    val paymentStatusMessage = when (responseCodeValue) {
-        0 -> "Ödeme başarılı (0)"
-        1 -> "Ödeme nakit yapıldı"
-        2 -> "Ödeme kredi kartı ile yapıldı"
-        3 -> "Ödeme QR kod ile yapıldı"
-        99 -> "İptal Edildi"
-        -1 -> "" // Hiçbir ödeme yapılmadıysa boş göster
-        else -> "Bilinmeyen durum: $responseCodeValue"
-    }
+    // Observe payment response code changes
+    val responseCode by viewModel.paymentResponseCode.collectAsState()
 
-    // Load latest transaction when payment is completed
-    LaunchedEffect(responseCodeValue) {
-        if (responseCodeValue != -1) {
-            Log.d("SaleScreen", "Payment status changed: $paymentStatusMessage for responseCode=$responseCodeValue")
-            // Load the latest transaction
-            viewModel.loadLatestTransaction()
-        }
-    }
-    
-    // Get the latest transaction
-    val latestTransaction = viewModel.latestTransaction.collectAsState().value
-
-    // Response code değiştiğinde Snackbar göster
-    LaunchedEffect(responseCodeValue) {
-        if (responseCodeValue != -1) {
-            Log.d("SaleScreen", "Payment status changed: $paymentStatusMessage for responseCode=$responseCodeValue")
-            // Artık responseCode'u sıfırlamıyoruz
-            // Böylece değer kalıcı olarak görüntülenebilir
-        }
-    }
-
-    // Cancel durumunda alanları temizlemek için ayrı bir LaunchedEffect ekleyebiliriz
-    LaunchedEffect(responseCodeValue) {
-        if (responseCodeValue == 99) {
-            Log.d("SaleScreen", "Cancel code detected (99), clearing fields.")
-            viewModel.clearFields()
-            // ViewModel'deki state'i resetle
-            viewModel.updatePaymentResponseCode(-1) 
-        }
-    }
-
-    // QR ödemesi tamamlandığında ekranı yenilemek için ek bir LaunchedEffect
-    LaunchedEffect(Unit) {
-        viewModel.paymentResponseCode.collect { newCode ->
-            if (newCode == 3) {
-                Log.d("SaleScreen", "QR payment detected (code=3), ensuring screen refresh")
-                // Burada doğrudan bir şey yapmaya gerek yok, collect işlemi yeterli
-                // Bu collect, QR ödemesi tamamlandığında ekranın yenilenmesini sağlar
+    // Show success message when payment is completed
+    LaunchedEffect(responseCode) {
+        if (responseCode > 0) {
+            when (responseCode) {
+                1 -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Cash payment completed successfully",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                2 -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Credit card payment completed successfully",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                3 -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "QR payment completed successfully",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                99 -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Payment cancelled",
+                        duration = SnackbarDuration.Short
+                    )
+                }
             }
+            // Reset payment response code
+            viewModel.clearFields()
         }
     }
-    
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                "Satış Ekranı",
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                style = MaterialTheme.typography.headlineMedium
+                "Sale Entry",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 24.dp)
             )
             
-            // Ödeme durumunu gösteren metin
-            if (paymentStatusMessage.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = paymentStatusMessage,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = when(responseCodeValue) {
-                        0, 1, 2, 3 -> MaterialTheme.colorScheme.primary
-                        99 -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                )
-                
-
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
             OutlinedTextField(
                 value = viewModel.productId,
                 onValueChange = { viewModel.productId = it },
-                label = { Text("Product ID") }
-            )
+                label = { Text("Product ID") })
+
             Spacer(modifier = Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = viewModel.productName,
                 onValueChange = { viewModel.productName = it },
-                label = { Text("Product Name") }
-            )
+                label = { Text("Product Name") })
+
             Spacer(modifier = Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = viewModel.price,
                 onValueChange = { viewModel.price = it },
                 label = { Text("Price") })
 
             Spacer(modifier = Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = viewModel.vatRate,
                 onValueChange = { viewModel.vatRate = it },
@@ -176,6 +127,7 @@ fun SaleScreen(
 
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Button(onClick = { viewModel.clearFields() }) {
                     Text("Clear")
@@ -191,7 +143,7 @@ fun SaleScreen(
                 }
             }
             
-            Text(viewModel.errorMessage)
+            Text(viewModel.errorMessage, color = MaterialTheme.colorScheme.error)
         }
     }
 }

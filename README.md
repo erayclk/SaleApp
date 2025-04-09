@@ -1,35 +1,52 @@
 # SaleApp
 
-A modern Android sales management application built with Kotlin and Jetpack Compose.
+A modern Android sales management application built with Kotlin and Jetpack Compose. This app provides a comprehensive point-of-sale solution for retail businesses, enabling seamless product sales and payment processing.
 
 ## Features
 
-- Secure user authentication
-- Product sales management
-- Multiple payment methods
-- QR code support for transactions
+- **Secure User Authentication**: Protected login system to ensure only authorized users can access the sales system
+- **Product Management**: Add and manage products with details like ID, name, price, and VAT rates
+- **Sales Processing**: Intuitive interface for creating and completing sales transactions
+- **Multiple Payment Methods**: Support for various payment options including cash, credit card, and QR code payments
+- **Transaction History**: Keep track of all sales transactions with detailed information
+- **Validation System**: Robust form validation to ensure accurate data entry
+- **Modern UI**: Clean and responsive user interface built with Jetpack Compose
 
 ## Screenshots
 
-### Login Page
-![Login Page](screenshots/loginPage.png)
+<table>
+  <tr>
+    <td><img src="screenshots/loginPage.png" alt="Login Page" width="200"/></td>
+    <td><img src="screenshots/salePage.png" alt="Sales Page" width="200"/></td>
+    <td><img src="screenshots/paymentPage.png" alt="Payment Page" width="200"/></td>
+    <td><img src="screenshots/qrPage.png" alt="QR Code Page" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Login Screen</b></td>
+    <td align="center"><b>Sales Screen</b></td>
+    <td align="center"><b>Payment Screen</b></td>
+    <td align="center"><b>QR Payment Screen</b></td>
+  </tr>
+</table>
 
-### Sales Page
-![Sales Page](screenshots/salePage.png)
+## App Workflow
 
-### Payment Page
-![Payment Page](screenshots/paymentPage.png)
-
-### QR Code Page
-![QR Code Page](screenshots/qrPage.png)
+1. **Login**: Users authenticate through a secure login screen
+2. **Sales Entry**: Enter product information including ID, name, price, and VAT rate
+3. **Payment Selection**: Choose between various payment methods (cash, card, QR code)
+4. **Transaction Processing**: Complete the sale with selected payment method
+5. **Receipt Generation**: Option to generate digital receipt for completed transactions
 
 ## Technical Details
 
-- Built with Kotlin
-- Jetpack Compose for modern UI
-- Room database for local storage
-- MVVM architecture
-- Navigation Components
+- Built with Kotlin and modern Android development practices
+- Jetpack Compose for building the reactive UI components
+- MVVM architecture for clean separation of concerns
+- Room database for efficient local data storage and retrieval
+- State management through Kotlin Flow and StateFlow
+- Navigation Components for seamless screen transitions
+- Form validation with real-time feedback
+- Coroutines for asynchronous operations
 
 ## Setup
 
@@ -40,7 +57,9 @@ A modern Android sales management application built with Kotlin and Jetpack Comp
 
 ## Requirements
 
-- Android Studio
-- Minimum Android API level as defined in the app's build.gradle.kts
-- Kotlin support enabled
+- Android Studio Hedgehog or newer
+- Minimum Android API level 24 (Android 7.0)
+- Kotlin 1.8.0 or higher
+
+
 

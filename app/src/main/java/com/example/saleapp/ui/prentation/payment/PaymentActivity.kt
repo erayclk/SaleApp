@@ -5,11 +5,13 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import com.example.saleapp.model.PaymentConstants
+import com.example.saleapp.utils.NetworkUtils
 
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.net.Socket
 import java.net.SocketTimeoutException
+import kotlinx.coroutines.runBlocking
 
 class PaymentActivity : ComponentActivity() {
     private var socket: Socket? = null
@@ -53,7 +55,13 @@ class PaymentActivity : ComponentActivity() {
 
     private fun connectToServer() {
         android.util.Log.d("PaymentActivity", "Attempting to connect to server...")
-        socket = Socket("192.168.1.38", 5000)
+        
+        // Use NetworkUtils to get the server IP address (using runBlocking because we're in a regular function)
+        val serverIp = runBlocking { NetworkUtils.getServerIpAddress(applicationContext) }
+        val serverPort = NetworkUtils.getServerPort()
+        
+        android.util.Log.d("PaymentActivity", "Discovered server at $serverIp:$serverPort")
+        socket = Socket(serverIp, serverPort)
         socket?.soTimeout = 15000 // 15 saniye timeout
         android.util.Log.d("PaymentActivity", "Connected to server")
     }
